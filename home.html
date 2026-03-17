@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard - E-Presensi</title>
+    <link rel="icon" type="image/png" href="assets/images/logo.png">
+    <link href="assets/bootstrap/bootstrap-5.0.2-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+    <nav class="desktop-navbar desktop-view">
+        <div class="nav-container">
+            <div class="d-flex align-items-center gap-3">
+                <img src="assets/images/logo.png" alt="Logo" style="width: 45px;">
+                <span class="fw-bold text-primary fs-5 brand-text-bold">E-Presensi</span>
+            </div>
+
+            <div class="nav-links d-flex gap-4 brand-text-bold">
+                <a href="home.html" class="nav-link-desk active">Home</a>
+                <a href="presensi.html" class="nav-link-desk">Presensi</a>
+                <a href="calendar.html" class="nav-link-desk">Kalender</a>
+                <a href="profile.html" class="nav-link-desk">Profil</a>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                
+                <button id="btnActionDesktop" onclick="processAttendance()" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm btn-gradient d-flex align-items-center gap-2">
+                    <i class="fas fa-fingerprint"></i> 
+                    <span>Absen Sekarang</span>
+                </button>
+
+                <div class="position-relative cursor-pointer mx-3" onclick="handleNotificationClick()">
+                    <i class="far fa-bell fa-lg text-secondary"></i>
+                    <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none"></span>
+                </div>
+
+                <div class="position-relative">
+                    <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-sm fw-bold cursor-pointer" onclick="toggleProfileDropdown(event)">
+                        <span class="user-initials">ME</span>
+                        <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle" style="width: 10px; height: 10px;"></span>
+                    </div>
+
+                    <div id="profileDropdown" class="dropdown-menu-custom shadow-lg rounded-4 d-none animate-fade-in-fast">
+                        <div class="p-3 border-bottom">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 45px; height: 45px; font-size: 1.1rem;">
+                                    <span class="user-initials">ME</span>
+                                </div>
+                                <div class="overflow-hidden">
+                                    <h6 class="mb-0 fw-bold text-dark text-truncate user-fullname-text" style="max-width: 180px;">Nama User</h6>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">Alih Daya</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-2">
+                            <a href="#" onclick="handleLogout()" class="d-flex align-items-center gap-2 px-3 py-2 rounded-3 text-decoration-none text-danger hover-bg-red-soft">
+                                <i class="fas fa-power-off" style="width: 20px;"></i>
+                                <span class="small fw-bold">Keluar</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container content-container animate-fade-in">
+            
+            <div class="mobile-view d-flex justify-content-between align-items-center mb-4 pt-4">
+
+                <div class="d-flex align-items-center gap-2" style="min-width: 0; flex-grow: 1;">
+                    
+                    <div class="avatar-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 38px; height: 38px; font-size: 0.9rem;">
+                        <span class="user-initials">ME</span>
+                    </div>
+                    
+                    <div class="lh-1 d-flex flex-column justify-content-center" style="min-width: 0;">
+                        <h6 class="m-0 fw-bold user-fullname-text text-truncate" style="font-size: 0.95rem;">
+                            Nama User Panjang
+                        </h6>
+                        
+                        <div class="text-primary d-flex align-items-center gap-1 text-truncate mt-1" style="font-size: 0.7rem;">
+                            <i class="fas fa-map-marker-alt flex-shrink-0"></i> 
+                            <span class="locationTextShort text-truncate">Mencari...</span>
+                            <i class="fas fa-sync-alt cursor-pointer text-secondary flex-shrink-0" onclick="refreshLocation()"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-1">
+
+                    <div class="position-relative cursor-pointer px-1" onclick="handleNotificationClick()">
+                        <i class="far fa-bell text-secondary" style="font-size: 1.3rem;"></i>
+                        <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none"></span>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="desktop-view flex-column mb-4">
+                <h2 class="fw-bold text-dark mb-1 ">Halo, <span class="user-fullname-text">User</span>!</h2>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2 text-primary">
+                        <i class="fas fa-map-marker-alt"></i> 
+                        <span class="locationTextShort">Mencari lokasi...</span>
+                        <i class="fas fa-sync-alt cursor-pointer text-secondary ms-2" onclick="refreshLocation()" title="Refresh Lokasi" style="cursor: pointer;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-date-gradient mb-4 text-white border-0 position-relative overflow-hidden">
+                <div class="card-body p-4 position-relative z-1">
+                    
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <h1 class="date-big-num m-0" id="dashDateNum">--</h1>
+                            <div class="d-flex flex-column justify-content-center date-text-group">
+                                <h3 class="fw-bold m-0" id="dashDateDay">...</h3>
+                                <span class="opacity-75" id="dashDateMonth">...</span>
+                            </div>
+                        </div>
+                        <a href="presensi.html" class="btn btn-light rounded-circle text-primary shadow-sm" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="row align-items-end">
+                         <div class="col-6">
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="icon-box bg-success"><i class="fas fa-door-open"></i></div>
+                                    <span class="font-monospace fw-bold" id="clockInDisplay">--:--:--</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="icon-box bg-danger"><i class="fas fa-door-closed"></i></div>
+                                    <span class="font-monospace fw-bold" id="clockOutDisplay">--:--:--</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-6 text-end">
+                            <small class="d-block mb-1 opacity-75 small">Status Minggu Ini</small>
+                            <div class="d-flex justify-content-end gap-1" id="weeklyBubbles">
+                                </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4 bg-primary text-white rounded-4">
+                <div class="card-body py-3">
+                    <div class="row text-center position-relative">
+                        <div class="col-6">
+                            <h2 class="fw-bold m-0" id="countKDK">0</h2>
+                            <small class="fw-bold opacity-75">KDK</small>
+                        </div>
+                        <div class="col-6 border-start border-white border-opacity-25">
+                            <h2 class="fw-bold m-0" id="countKDM">0</h2>
+                            <small class="fw-bold opacity-75">KDM</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h6 class="fw-bold mb-3">Riwayat Terakhir</h6>
+            <div id="dashboardHistoryList" class="d-flex flex-column gap-2 pb-5"></div>
+        </div>
+    </main>
+
+    <div id="logoutModal" class="custom-modal-overlay d-none">
+        <div class="custom-modal-box text-center">
+            <div class="modal-icon-wrapper" style="background: #fee2e2; color: #ef4444;"><i class="fas fa-power-off"></i></div>
+            <h5 class="fw-bold mt-3">Konfirmasi</h5>
+            <p class="text-muted small mb-4">Apakah Anda yakin ingin keluar?</p>
+            <div class="d-flex gap-2 justify-content-center">
+                <button onclick="closeLogoutModal()" class="btn btn-light w-50 rounded-pill fw-bold text-secondary">Batal</button>
+                <button onclick="confirmLogout()" class="btn btn-danger w-50 rounded-pill fw-bold shadow-sm">Ya, Keluar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="appModal" class="custom-modal-overlay d-none">
+        <div class="custom-modal-box text-center">
+            <div class="modal-icon-wrapper" id="modalIconBg"><i class="fas fa-check" id="modalIcon"></i></div>
+            <h5 id="modalTitle" class="fw-bold mt-3">Info</h5>
+            <p id="modalMessage" class="text-muted small mb-4">...</p>
+            <button onclick="closeAppModal()" class="btn btn-primary w-100 rounded-pill">Oke</button>
+        </div>
+    </div>
+
+    <div class="mobile-nav-container d-md-none">
+        <div class="fab-container">
+            <button id="btnActionMobile" class="fab-btn" onclick="processAttendance()">
+                <i class="fas fa-fingerprint"></i>
+            </button>
+        </div>
+        <nav class="mobile-navbar">
+            <div class="nav-curve-bg">
+                <a href="home.html" class="mob-item active"><i class="fas fa-home"></i><span>Home</span></a>
+                <a href="presensi.html" class="mob-item"><i class="fas fa-calendar-check"></i><span>Presensi</span></a>
+                <div style="width: 100%;"></div> 
+                <a href="calendar.html" class="mob-item"><i class="far fa-calendar-alt"></i><span>Kalender</span></a>
+                <a href="profile.html" class="mob-item"><i class="far fa-user"></i><span>Profil</span></a>
+            </div>
+        </nav>
+    </div>
+
+    <script src="cordova.js"></script>
+    <script src="assets/js/app.js"></script>
+    <script src="assets/js/login.js"></script>
+    <script src="assets/js/presensi.js"></script> 
+    <script src="assets/js/calendar.js"></script>
+    <script src="assets/js/profile.js"></script> 
+    <script src="assets/js/patrol.js"></script>
+    <script src="assets/js/script.js"></script> 
+</body>
+</html>

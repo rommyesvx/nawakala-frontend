@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.dasmen.presensi" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Nawakala</name>
+    <description>Aplikasi Presensi DASMEN</description>
+    <author email="dev@dasmen.com" href="http://dasmen.com">Team DASMEN</author>
+    
+    <content src="index.html" />
+    
+    <access origin="*" />
+    <allow-navigation href="https://caraka-biroumumpbj.kemendikdasmen.go.id/*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    
+    <icon src="res/icon/logo.png" />
+    
+    <platform name="android">
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/icon/logo.png" />
+        <preference name="AndroidWindowSplashScreenBackground" value="#FFFFFF" />
+        <preference name="ShowSplashScreenSpinner" value="false" />
+        
+        <preference name="SplashScreenDelay" value="0" />
+        <preference name="FadeSplashScreen" value="false" />
+        <preference name="AndroidXEnabled" value="true" />
+
+        <icon density="mdpi" src="res/icon/android/mdpi.png" />
+        <icon density="hdpi" src="res/icon/android/hdpi.png" />
+        <icon density="xhdpi" src="res/icon/android/xhdpi.png" />
+        <icon density="xxhdpi" src="res/icon/android/xxhdpi.png" />
+
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:usesCleartextTraffic="true" />
+        </edit-config>
+        
+        <config-file parent="/*" target="AndroidManifest.xml">
+            <uses-permission android:name="android.permission.CAMERA" />
+            <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+            <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+            <uses-permission android:name="android.permission.INTERNET" />
+        </config-file>
+    </platform>
+
+    <plugin name="cordova-plugin-device" spec="~2.0.3" />
+    <plugin name="cordova-plugin-geolocation" spec="~4.1.0" />
+    <plugin name="cordova-plugin-camera" spec="~5.0.1" />
+    <plugin name="cordova-plugin-x-toast" spec="~2.7.3" />
+    <plugin name="cordova-plugin-android-permissions" spec="~1.1.5" />
+    <plugin name="cordova-plugin-request-location-accuracy" />
+    <plugin name="cordova-plugin-mock-location" />
+</widget>

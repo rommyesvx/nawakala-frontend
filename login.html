@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - E-Presensi</title>
+    <link rel="icon" type="image/png" href="assets/images/logo.png">
+    <link href="assets/bootstrap/bootstrap-5.0.2-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+    <div id="viewLoading" class="loading-overlay d-none">
+        <div class="loading-box-center">
+            <div class="spinner-ring"></div>
+            <div class="loading-percentage" id="loadingPercent">0%</div>
+        </div>
+        <p class="loading-text">Memuat Data...</p>
+    </div>
+
+    <div id="viewLogin" class="login-container">
+        <div class="login-card animate-fade-in">
+            <div class="text-center mb-4">
+                <img src="assets/images/logo.png" alt="Logo" class="login-logo mb-3">
+                <h5 class="fw-bold" style="color: #0088CC;">Kemen<span class="text-warning">dikdasmen</span></h5>
+            </div>
+            <div class="text-center mb-5">
+                <h3 class="fw-bold text-dark mb-1">Selamat Datang</h3>
+                <p class="text-muted small">Silahkan Masuk untuk melakukan Presensi</p>
+            </div>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <input type="text" class="form-control custom-input" id="inputUser" placeholder="NIK" required>
+                </div>
+                <div class="mb-4">
+                    <input type="password" class="form-control custom-input" id="inputPass" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm btn-gradient">MASUK</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="appModal" class="custom-modal-overlay d-none">
+        <div class="custom-modal-box text-center">
+            <div class="modal-icon-wrapper" id="modalIconBg"><i class="fas fa-info" id="modalIcon"></i></div>
+            <h5 id="modalTitle" class="fw-bold mt-3">Info</h5>
+            <p id="modalMessage" class="text-muted small mb-4">...</p>
+            <button onclick="closeAppModal()" class="btn btn-primary w-100 rounded-pill">Oke</button>
+        </div>
+    </div>
+    
+    <script src="cordova.js"></script>
+    <script src="assets/js/app.js"></script>
+    <script src="assets/js/login.js"></script>
+    <script src="assets/js/presensi.js"></script>
+    <script src="assets/js/calendar.js"></script>
+    <script src="assets/js/profile.js"></script> 
+    <script src="assets/js/script.js"></script>
+</body>
+</html>

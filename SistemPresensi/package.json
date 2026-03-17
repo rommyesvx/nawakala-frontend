@@ -1,0 +1,48 @@
+{
+  "name": "com.dasmen.presensi",
+  "displayName": "SistemPresensi",
+  "version": "1.0.0",
+  "description": "A sample Apache Cordova application that responds to the deviceready event.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ecosystem:cordova"
+  ],
+  "author": "Apache Cordova Team",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "cordova-android": "^13.0.0",
+    "cordova-browser": "^7.0.0",
+    "cordova-plugin-android-permissions": "^1.1.5",
+    "cordova-plugin-camera": "^8.0.0",
+    "cordova-plugin-device": "^3.0.0",
+    "cordova-plugin-geolocation": "^5.0.0",
+    "cordova-plugin-mock-location": "^0.0.8",
+    "cordova-plugin-request-location-accuracy": "^2.3.0",
+    "cordova-plugin-x-toast": "^2.7.3",
+    "rm": "^0.1.8"
+  },
+  "cordova": {
+    "platforms": [
+      "browser",
+      "android"
+    ],
+    "plugins": {
+      "cordova-plugin-device": {},
+      "cordova-plugin-geolocation": {
+        "GPS_REQUIRED": "true"
+      },
+      "cordova-plugin-camera": {
+        "ANDROIDX_CORE_VERSION": "1.6.+"
+      },
+      "cordova-plugin-x-toast": {},
+      "cordova-plugin-android-permissions": {},
+      "cordova-plugin-request-location-accuracy": {
+        "PLAY_SERVICES_LOCATION_VERSION": "16.+"
+      },
+      "cordova-plugin-mock-location": {}
+    }
+  }
+}

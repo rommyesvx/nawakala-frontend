@@ -1,0 +1,515 @@
+:root {
+    --primary: #0ea5e9; 
+    --primary-gradient: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    --bg-body: #f8fafc; 
+    --text-dark: #1e293b;
+}
+
+/* --- GLOBAL MOBILE OPTIMIZATION --- */
+* {
+    /* Menghilangkan highlight biru saat tap di Android/iOS */
+    -webkit-tap-highlight-color: transparent; 
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(180deg, #d0f0fd 0%, #ffffff 50%, #d0f0fd 100%);
+    min-height: 100vh;
+    background-attachment: fixed;
+    color: var(--text-dark);
+    margin: 0;
+    
+    /* Mencegah user memblok teks (Select) agar terasa seperti Apps Native */
+    -webkit-user-select: none; 
+    user-select: none;
+    
+    /* Mencegah scroll bouncing berlebih di iOS */
+    overscroll-behavior-y: none; 
+}
+
+/* Izinkan select teks hanya di input form */
+input, textarea {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+}
+
+/* --- VISIBILITY CONTROL --- */
+.desktop-view { display: none !important; }
+.mobile-view { display: flex !important; }
+
+/* Media Query Desktop */
+@media (min-width: 768px) {
+    .desktop-view { display: flex !important; }
+    
+    /* Sembunyikan elemen mobile di layar besar */
+    .mobile-view, 
+    .mobile-navbar, 
+    .fab-container { /* FAB disembunyikan di desktop karena sudah ada tombol di header */
+        display: none !important; 
+    }
+    
+    .main-content { padding-top: 100px !important; }
+}
+
+/* --- DATE DISPLAY (DASHBOARD) --- */
+.date-big-num {
+    font-size: 3.8rem !important; /* SEBELUMNYA 2.8rem */
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -2px; /* Sedikit dirapatkan agar angka besar tetap rapi */
+}
+
+.date-text-group h3 { font-size: 1.1rem !important; }
+.date-text-group span { font-size: 0.75rem !important; }
+
+@media (min-width: 768px) {
+    .date-big-num { 
+        font-size: 6rem !important; /* SEBELUMNYA 4.5rem (Tampilan Desktop) */
+    } 
+    .date-text-group h3 { font-size: 1.5rem !important; }
+}
+
+/* --- LOGIN --- */
+.login-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100vh;
+    background: linear-gradient(180deg, #e0f7fa 0%, #ffffff 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999; /* Pastikan di atas navbar */
+    padding: 20px;
+}
+.login-card {
+    background: white;
+    width: 100%;
+    max-width: 400px;
+    padding: 40px 30px;
+    border-radius: 25px;
+    box-shadow: 0 10px 40px rgba(0, 136, 204, 0.15);
+    text-align: center;
+}
+.login-logo { width: 90px; height: auto; object-fit: contain; margin: 0 auto; }
+.custom-input {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 0.95rem;
+    transition: 0.3s;
+}
+.custom-input:focus {
+    background-color: white;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+    outline: none;
+}
+.btn-gradient {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border: none;
+    letter-spacing: 1px;
+    transition: transform 0.2s;
+}
+.btn-gradient:active { transform: scale(0.98); }
+
+/* --- DESKTOP NAVBAR --- */
+.desktop-navbar {
+    position: fixed; top: 0; left: 0; width: 100%; height: 80px;
+    background: white; z-index: 1030;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.04);
+    border-bottom: 1px solid #f1f5f9;
+}
+.nav-container {
+    width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px;
+    display: flex; justify-content: space-between; align-items: center; height: 100%;
+}
+.nav-link-desk { text-decoration: none; color: #64748b; font-weight: 500; padding: 8px 16px; transition: 0.3s; }
+.nav-link-desk:hover, .nav-link-desk.active { color: var(--primary); }
+
+/* --- CSS UNTUK NAVBAR YANG LEBIH TEBAL --- */
+
+/* 1. Khusus untuk teks "E-Presensi" agar lebih tebal dari sebelumnya (dari 700 ke 800) */
+.brand-text-bold {
+    font-weight: 800 !important; /* Extra Bold */
+}
+
+/* 2. Ubah ketebalan dasar link menu (Home, Presensi, dll) dari 500 ke 600 */
+.nav-link-desk {
+    text-decoration: none;
+    color: #64748b;
+    font-weight: 600; /* Diubah menjadi Semi-Bold */
+    padding: 8px 16px;
+    transition: 0.3s;
+}
+
+/* 3. Pisahkan style hover dan active, dan buat link yang aktif menjadi Bold (700) */
+.nav-link-desk:hover {
+    color: var(--primary);
+}
+
+.nav-link-desk.active {
+    color: var(--primary);
+    font-weight: 700 !important; /* Menjadi Bold saat aktif */
+}
+
+/* --- HOVER EFFECT FOR DESKTOP NAVBAR ICONS & BUTTONS --- */
+
+/* 1. Tombol Absen Sekarang */
+.nav-container button.btn-gradient {
+    transition: all 0.3s ease; /* Transisi halus */
+}
+
+.nav-container button.btn-gradient:hover {
+    transform: translateY(-2px); /* Tombol naik sedikit */
+    box-shadow: 0 6px 15px rgba(14, 165, 233, 0.4) !important; /* Bayangan lebih tebal */
+    filter: brightness(1.1); /* Warna sedikit lebih terang */
+}
+
+/* 2. Ikon Lonceng Notifikasi */
+.nav-container .fa-bell {
+    transition: all 0.3s ease;
+}
+
+.nav-container .fa-bell:hover {
+    color: var(--primary) !important; /* Berubah jadi biru saat dihover */
+    transform: scale(1.1) rotate(10deg); /* Membesar dan miring sedikit */
+}
+
+/* 3. Avatar Hover (Opsional, agar seragam) */
+.nav-container .avatar-circle {
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.nav-container .avatar-circle:hover {
+    transform: scale(1.1);
+}
+
+/* --- PROFILE DROPDOWN (DESKTOP) --- */
+.dropdown-menu-custom {
+    position: absolute;
+    top: 120%; /* Sedikit di bawah avatar */
+    right: 0;
+    width: 280px;
+    background: white;
+    border: 1px solid #f1f5f9;
+    z-index: 1050;
+    transform-origin: top right;
+}
+
+/* Panah kecil di atas dropdown (Opsional, pemanis) */
+.dropdown-menu-custom::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 14px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    transform: rotate(45deg);
+    border-top: 1px solid #f1f5f9;
+    border-left: 1px solid #f1f5f9;
+}
+
+/* Hover Effects untuk item menu */
+.hover-bg-light:hover {
+    background-color: #f8fafc;
+    color: var(--primary) !important;
+}
+
+.hover-bg-red-soft:hover {
+    background-color: #fee2e2;
+    color: #dc2626 !important;
+}
+
+/* Animasi Muncul Cepat */
+.animate-fade-in-fast {
+    animation: fadeInFast 0.2s ease-out forwards;
+}
+
+@keyframes fadeInFast {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- MOBILE BOTTOM NAV --- */
+.mobile-navbar {
+    display: block !important;
+    position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; height: auto;
+    z-index: 1050; pointer-events: none; padding: 0; margin: 0;
+}
+.nav-curve-bg {
+    pointer-events: auto;
+    background: #ffffff;
+    width: 100% !important; height: 75px;
+    border-top-left-radius: 24px; border-top-right-radius: 24px;
+    box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.05);
+    display: grid; grid-template-columns: repeat(5, 1fr); 
+    align-items: center; justify-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+    position: absolute; bottom: 0; left: 0;
+}
+.mob-item {
+    text-decoration: none; color: #94a3b8; 
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; height: 100%; transition: all 0.2s ease;
+}
+.mob-item i { font-size: 1.4rem; margin-bottom: 4px; color: #94a3b8; }
+.mob-item span { font-size: 0.7rem; font-weight: 500; }
+.mob-item.active { color: #0ea5e9; }
+.mob-item.active i { color: #0ea5e9; transform: translateY(-2px); }
+
+.fab-container {
+    pointer-events: auto;
+    position: fixed; 
+    bottom: calc(20px + env(safe-area-inset-bottom)); 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px; height: 70px;
+    background: var(--bg-body); border-radius: 50%;
+    padding: 6px; z-index: 1060;
+    display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 -5px 10px rgba(0,0,0,0.02); 
+}
+.fab-btn {
+    width: 100%; height: 100%;
+    border-radius: 50%; background: #ffffff;
+    border: 3px solid #38bdf8; color: #0ea5e9;
+    font-size: 2rem; display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3);
+    cursor: pointer; transition: transform 0.2s;
+}
+.fab-btn:active { transform: scale(0.95); }
+
+/* --- PROFILE --- */
+.profile-avatar-lg {
+    width: 120px; height: 120px; background: #0088CC;
+    border-radius: 50%; font-size: 2.5rem; border: 4px solid #e0f2fe;
+}
+
+/* --- LOADING --- */
+.loading-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+    background: linear-gradient(180deg, #d0f0fd 0%, #ffffff 50%, #d0f0fd 100%);
+    z-index: 99999; /* Tertinggi */
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--text-dark); transition: opacity 0.5s ease-out;
+}
+.loading-box-center { position: relative; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; }
+.spinner-ring {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border: 4px solid rgba(14, 165, 233, 0.1); border-top: 4px solid var(--primary);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+.loading-percentage {
+    font-family: 'Poppins', sans-serif; font-size: 1.1rem;
+    font-weight: 700; color: var(--primary); z-index: 2;
+}
+.loading-text {
+    font-family: 'Poppins', sans-serif; font-size: 0.9rem;
+    font-weight: 500; color: #64748b; margin-top: 20px; letter-spacing: 0.5px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* --- CALENDAR --- */
+#viewCalendar .card { border-radius: 24px !important; border: none; }
+#viewCalendar .card-header { background: transparent; border-bottom: 1px solid #f1f5f9; padding: 20px; }
+
+.calendar-day {
+    width: 100%; 
+    aspect-ratio: 1 / 1; /* Ini trik agar kotak tetap presisi */
+    height: auto;
+    max-width: 40px; /* Batas maksimal agar tidak raksasa di desktop */
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; font-size: 0.9rem; font-weight: 500;
+    cursor: pointer; margin: 0 auto; transition: all 0.2s ease; 
+    color: var(--text-dark);
+}
+.calendar-day:hover { background-color: #e0f2fe; color: var(--primary); font-weight: 700; }
+.calendar-day.today { background: var(--primary-gradient); color: white !important; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.4); }
+.calendar-day.holiday { color: #ef4444; }
+.calendar-day.faded { color: #cbd5e1; pointer-events: none; }
+
+/* --- STYLE DAFTAR LIBUR --- */
+#holidayList .d-flex {
+    border-radius: 16px !important; margin-bottom: 10px;
+    border: 1px solid #f1f5f9; transition: transform 0.2s;
+}
+#holidayList .d-flex:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important; }
+#holidayList .bg-light { border-radius: 12px !important; background-color: #f8fafc !important; }
+
+/* --- ANIMATIONS & UTILS --- */
+.fade-out { opacity: 0; pointer-events: none; }
+.fade-in { animation: fadeInPage 0.8s ease-out; }
+@keyframes fadeInPage { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+.text-muted { color: #64748b !important; }
+.fw-bold { font-weight: 700 !important; }
+
+/* --- GENERAL & SPA CONTAINER --- */
+.content-container { 
+    max-width: 900px; 
+    margin: 0 auto; 
+    padding-bottom: 100px; /* Spacer untuk Bottom Nav */
+    width: 100%; 
+}
+
+.avatar-circle { width: 40px; height: 40px; border-radius: 50%; }
+.card-date-gradient { background: var(--primary-gradient); border-radius: 24px; box-shadow: 0 10px 25px rgba(14, 165, 233, 0.3); }
+.icon-box { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; }
+.bg-success-soft { background: rgba(255,255,255,0.2); color: #bbf7d0; }
+.bg-danger-soft { background: rgba(255,255,255,0.2); color: #fecaca; }
+
+#weeklyBubbles { display: flex; justify-content: flex-end; gap: 6px; min-height: 35px; align-items: center; }
+.bubble {
+    width: 30px; height: 30px; background: rgba(255, 255, 255, 0.2); 
+    border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;
+}
+.bubble.active { background: #ffffff; color: #0ea5e9; border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+/* --- RESPONSIVE FIXES (Small Mobile < 400px) --- */
+@media (max-width: 400px) {
+    /* 1. Mengurangi Padding Kartu agar area konten lebih luas */
+    .card-date-gradient .card-body {
+        padding: 1rem 1.2rem !important;
+    }
+
+    /* 2. Mengecilkan ukuran Angka Tanggal */
+    .date-big-num {
+        font-size: 3rem !important; /* SEBELUMNYA 2.2rem */
+    }
+
+    /* 3. Mengecilkan ukuran Bubble agar muat 5 berjajar */
+    .bubble {
+        width: 24px;  /* Dari 30px jadi 24px */
+        height: 24px; /* Dari 30px jadi 24px */
+        font-size: 0.55rem !important; /* Kecilkan huruf di dalam bubble */
+    }
+
+    /* 4. Merapatkan jarak antar bubble */
+    #weeklyBubbles {
+        gap: 3px; /* Dari 6px jadi 3px */
+    }
+    
+    /* 5. Menyesuaikan teks label "Status Minggu Ini" */
+    .card-date-gradient small {
+        font-size: 0.65rem !important;
+    }
+
+    /* --- TAMBAHAN FIX UNTUK KALENDER --- */
+    
+    /* 1. Paksa Gap (jarak) grid menjadi lebih rapat */
+    #calendarGrid, 
+    #viewCalendar .d-grid {
+        gap: 2px !important; /* Override style inline html yang 8px */
+    }
+
+    /* 2. Kecilkan padding card kalender agar area lebih luas */
+    #viewCalendar .card-body {
+        padding: 10px !important;
+    }
+
+    /* 3. Kecilkan font tanggal sedikit agar muat di lingkaran */
+    .calendar-day {
+        font-size: 0.75rem !important;
+    }
+}
+
+/* --- FIX LAYOUT 320px (MOBILE KECIL) --- */
+@media (max-width: 380px) {
+    /* Perkecil gap antar elemen di header */
+    .mobile-view {
+        gap: 5px !important; 
+    }
+    
+    /* Nama user fontnya dikecilkan sedikit */
+    .user-fullname-text {
+        font-size: 0.85rem !important; 
+    }
+
+    /* Sembunyikan kata "Lapor" jika layar SANGAT kecil (< 330px), sisakan icon saja */
+    /* Opsional: Hapus baris di bawah ini jika ingin teks tetap muncul */
+    .btn-warning span:last-child {
+       display: none; 
+    }
+    
+    /* Pastikan tombol tetap bulat jika teks hilang */
+    .btn-warning {
+        padding: 6px !important;
+        aspect-ratio: 1/1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+}
+
+.hist-item-gradient { 
+    background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%); 
+    color: white; border-radius: 16px; padding: 15px 20px; 
+    display: flex; justify-content: space-between; align-items: center; 
+    box-shadow: 0 4px 10px rgba(56, 189, 248, 0.2); 
+}
+
+.card.bg-primary { border-radius: 24px !important; }
+.card.bg-primary .border-start { border-color: rgba(255, 255, 255, 0.3) !important; }
+.badge-kdk { background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+.badge-kdm { background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+
+.d-none { display: none !important; }
+.cursor-pointer { cursor: pointer; }
+.animate-fade-in { animation: fadeIn 0.5s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- MODAL --- */
+.custom-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); 
+    z-index: 10000 !important; /* Di atas Loading */
+    display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px);
+}
+.custom-modal-box { background: white; width: 85%; max-width: 320px; padding: 25px; border-radius: 20px; }
+.modal-icon-wrapper { width: 50px; height: 50px; background: #e0f2fe; color: var(--primary); border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+
+/* --- TABEL PRESENSI (ROUNDED) --- */
+#viewHistory .card { border-radius: 20px !important; overflow: hidden; border: 1px solid #f1f5f9; }
+#viewHistory thead { background-color: #f1f5f9 !important; }
+#viewHistory tr { transition: background-color 0.2s; }
+#viewHistory tr:last-child td:first-child { border-bottom-left-radius: 20px; }
+#viewHistory tr:last-child td:last-child { border-bottom-right-radius: 20px; }
+#viewHistory tbody tr:hover { background-color: #f8fafc; }
+#viewHistory .badge { border-radius: 8px !important; padding: 6px 12px !important; font-weight: 600; }
+
+/* Cari bagian #btn-send di CSS Anda dan update menjadi seperti ini */
+#btn-send {
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+    
+    /* Pastikan border radius sama dengan kotak lokasi */
+    border-radius: 12px !important; 
+    
+    /* Padding diatur agar tinggi tombol proporsional (tidak terlalu tebal) */
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+    
+    /* Pastikan tinggi otomatis mengikuti konten, bukan fixed */
+    height: auto !important; 
+    min-height: auto !important;
+    
+    /* Flexbox untuk merapikan icon dan teks */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsif untuk layar sangat kecil (< 380px) */
+@media (max-width: 380px) {
+    #btn-send {
+        font-size: 0.9rem; /* Perkecil teks sedikit */
+        padding: 12px !important; /* Kurangi padding */
+    }
+}
