@@ -472,7 +472,15 @@ function updateDashboardButtonUI() {
 
 // --- UPDATE LOGIKA UTAMA TOMBOL (STANDARD LOGIC RESTORED) ---
 
-// --- UPDATE LOGIKA UTAMA TOMBOL (STANDARD LOGIC RESTORED) ---
+// ==========================================
+// KONTROL MODAL KDM
+// ==========================================
+window.closeKdmModal = () => document.getElementById('kdmConfirmModal').classList.add('d-none');
+
+window.confirmKdmAttendance = () => {
+    closeKdmModal();
+    finishClockIn('KDM'); // Lanjut eksekusi absen sebagai KDM
+};
 
 async function executeAttendanceLogic() {
     if (currentUserLat == null || currentUserLon == null) {
@@ -493,26 +501,20 @@ async function executeAttendanceLogic() {
     const isClockedOut = todayRecord && todayRecord.outTime !== '--:--:--';
     const isSatpam = isUserSatpam();
 
-    // === 1. LOGIKA SATPAM: FASE 2 (PATROLI) ===
+    // 1. LOGIKA SATPAM: FASE 2 (PATROLI)
     if (isSatpam && isClockedIn && !isClockedOut && hour < 16) {
         window.location.href = "patrol.html";
         return; 
     }
 
-    // === 2. LOGIKA STANDARD (User Biasa / Satpam Fase 1 & 3) ===
-    
-    // A. Cek Jam Kerja Global
+    // 2. CEK JAM KERJA
     if (hour < 5 || hour >= 23) {
-        showAppModal(
-            "Di Luar Jam Kerja",
-            "Sistem presensi ditutup.<br>Jam operasional: <b>05:00 - 23:00</b>",
-            "warning"
-        );
+        showAppModal("Di Luar Jam Kerja", "Sistem presensi ditutup.<br>Jam operasional: <b>05:00 - 23:00</b>", "warning");
         return;
     }
 
     try {
-        // B. LOGIKA CLOCK OUT (PULANG)
+        // 3. LOGIKA CLOCK OUT (PULANG)
         if (existingIndex > -1 && history[existingIndex].inTime !== '--:--:--') {
             if (history[existingIndex].outTime !== '--:--:--') {
                 showAppModal("Info", "Anda sudah menyelesaikan presensi hari ini.", "info");
@@ -523,10 +525,11 @@ async function executeAttendanceLogic() {
                 return;
             }
 
-            // PROSES CLOCK OUT
+            // Eksekusi Clock Out
             history[existingIndex].outTime = timeStr;
             saveLocalHistory(history);
     
+            // Pengiriman API (Diabaikan sementara sesuai request, tapi strukturnya disiapkan)
             if (window.PresensiAPI && activeUser?.token) {
                 await PresensiAPI.submit(activeUser.token, {
                     date: todayKey,
@@ -538,21 +541,14 @@ async function executeAttendanceLogic() {
             showAppModal("Berhasil", "Presensi pulang berhasil dicatat", "success");
             
             renderHistoryUI(history);
-            updateDashboardButtonUI(); // Refresh tombol
-            
-            // ---> TAMBAHKAN BARIS INI UNTUK UPDATE UI JAM KELUAR SECARA REAL-TIME <---
+            updateDashboardButtonUI(); 
             checkTodayStatus(); 
-
             return;
         }
 
-        // C. LOGIKA CLOCK IN (MASUK)
+        // 4. LOGIKA CLOCK IN (MASUK) - VALIDASI GEOFENCING
         if (hour < 5) {
-            showAppModal(
-                "Belum Waktunya",
-                `Presensi masuk dibuka pukul <b>05:00</b><br>Sekarang pukul <b>${timeStr}</b>`,
-                "warning"
-            );
+            showAppModal("Belum Waktunya", `Presensi masuk dibuka pukul <b>05:00</b><br>Sekarang pukul <b>${timeStr}</b>`, "warning");
             return;
         }
         if (existingIndex > -1) {
@@ -560,37 +556,63 @@ async function executeAttendanceLogic() {
             return;
         }
 
-        // PROSES CLOCK IN
-        history.push({
-            dateKey: todayKey,
-            rawDate: now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
-            inTime: timeStr,
-            outTime: '--:--:--',
-            type: 'KDK'
-        });
+        // --- TAHAP PENGECEKAN LOKASI KE API ---
+        // Karena butuh pop-up konfirmasi SEBELUM data di-submit, idealnya ada endpoint API untuk "Check Location"
+        // Contoh penggunaannya nanti:
+        // const checkResult = await PresensiAPI.checkLocation(activeUser.token, currentUserLat, currentUserLon);
+        // const isLuarArea = checkResult.is_outside_polygon; 
 
-        saveLocalHistory(history);
+        // [SIMULASI FRONTEND]
+        // Set ke "true" untuk mengetes pop-up KDM muncul. 
+        // Ubah ke "false" jika ingin mengetes absen KDK yang langsung masuk tanpa pop-up.
+        const isLuarArea = true; 
 
-        if (window.PresensiAPI && activeUser?.token) {
-            await PresensiAPI.submit(activeUser.token, {
-                date: todayKey,
-                clock_in_time: timeStr,
-                latitude: currentUserLat,
-                longitude: currentUserLon
-            });
+        if (isLuarArea) {
+            // Tampilkan Modal KDM (Membutuhkan HTML kdmConfirmModal yang saya berikan sebelumnya)
+            document.getElementById('kdmConfirmModal').classList.remove('d-none');
+        } else {
+            // Jika di dalam polygon, langsung absen sebagai KDK (Kerja Di Kantor)
+            finishClockIn('KDK');
         }
-
-        showAppModal("Berhasil", "Presensi Masuk Berhasil Dicatat", "success");
-        
-        renderHistoryUI(history);
-        updateDashboardButtonUI(); // Refresh tombol
-
-        // ---> TAMBAHKAN BARIS INI UNTUK UPDATE UI JAM MASUK SECARA REAL-TIME <---
-        checkTodayStatus(); 
 
     } catch (err) {
         console.error("❌ History API error:", err);
     }
+}
+
+async function finishClockIn(statusPresensi) {
+    const now = new Date();
+    const todayKey = formatDateKey(now);
+    const timeStr = formatTimeOnly(now);
+    const history = getLocalHistory();
+
+    // PROSES PENYIMPANAN LOKAL
+    history.push({
+        dateKey: todayKey,
+        rawDate: now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+        inTime: timeStr,
+        outTime: '--:--:--',
+        type: statusPresensi // Diisi 'KDK' atau 'KDM'
+    });
+
+    saveLocalHistory(history);
+
+    // PROSES SUBMIT KE API
+    if (window.PresensiAPI && activeUser?.token) {
+        await PresensiAPI.submit(activeUser.token, {
+            date: todayKey,
+            clock_in_time: timeStr,
+            latitude: currentUserLat,
+            longitude: currentUserLon,
+            status: statusPresensi // Status KDK/KDM dikirim ke backend
+        });
+    }
+
+    showAppModal("Berhasil", `Presensi Masuk (<b>${statusPresensi}</b>) Berhasil Dicatat`, "success");
+    
+    renderHistoryUI(history);
+    updateDashboardButtonUI(); 
+    checkTodayStatus(); 
 }
 
 function renderHistoryUI(historyData) {
