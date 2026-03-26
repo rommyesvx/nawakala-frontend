@@ -6,7 +6,7 @@
     <title>Dashboard - E-Presensi</title>
     <link rel="icon" type="image/png" href="assets/images/logo.png">
     <link href="assets/bootstrap/bootstrap-5.0.2-dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -181,6 +181,20 @@
             <div class="d-flex gap-2 justify-content-center">
                 <button onclick="closeLogoutModal()" class="btn btn-light w-50 rounded-pill fw-bold text-secondary">Batal</button>
                 <button onclick="confirmLogout()" class="btn btn-danger w-50 rounded-pill fw-bold shadow-sm">Ya, Keluar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="kdmConfirmModal" class="custom-modal-overlay d-none">
+        <div class="custom-modal-box text-center">
+            <div class="modal-icon-wrapper" style="background: #e0e7ff; color: #4f46e5;">
+                <i class="fas fa-laptop-house"></i>
+            </div>
+            <h5 class="fw-bold mt-3">Konfirmasi Presensi</h5>
+            <p class="text-muted small mb-4">Sistem mendeteksi Anda berada di luar area kantor. Lanjutkan presensi sebagai <b>Kerja Dari Manapun (KDM)</b>?</p>
+            <div class="d-flex gap-2 justify-content-center">
+                <button onclick="closeKdmModal()" class="btn btn-light w-50 rounded-pill fw-bold text-secondary">Batal</button>
+                <button onclick="confirmKdmAttendance()" class="btn btn-primary w-50 rounded-pill fw-bold shadow-sm">Ya, Lanjutkan</button>
             </div>
         </div>
     </div>
