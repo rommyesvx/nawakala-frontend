@@ -5,10 +5,10 @@
 
 const CalendarAPI = {
     baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api",
-    
+
     _cache: {},
 
-    getHolidays: async function(month, year) {
+    getHolidays: async function (month, year) {
         const cacheKey = `${year}-${month}`;
 
         if (this._cache[cacheKey]) {
@@ -18,9 +18,9 @@ const CalendarAPI = {
         try {
             const strMonth = String(month).padStart(2, '0');
             console.log(`[CalendarAPI] Fetching: ${this.baseUrl}/calendar.php?month=${strMonth}&year=${year}`);
-            
+
             const response = await fetch(`${this.baseUrl}/calendar.php?month=${strMonth}&year=${year}`);
-            
+
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
             const result = await response.json();
@@ -28,7 +28,7 @@ const CalendarAPI = {
             if (result.status === 'success' && result.data && result.data.holidays) {
                 let holidays = result.data.holidays;
 
-                                const overrides = {
+                const overrides = {
                     "2026-02-16": "Cuti Bersama Imlek",
                     "2026-03-18": "Cuti Bersama Nyepi",
                     "2026-03-20": "Cuti Bersama Idul Fitri",
@@ -53,11 +53,11 @@ const CalendarAPI = {
                 this._cache[cacheKey] = holidays;
                 return holidays;
             } else {
-                return {}; 
+                return {};
             }
         } catch (error) {
             console.error("[CalendarAPI] Error:", error);
-            return {}; 
+            return {};
         }
     }
 };

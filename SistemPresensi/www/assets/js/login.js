@@ -7,7 +7,7 @@ const LoginAPI = {
      * @param {string} user_password 
      * @returns {Promise<Object>} Response dari server
      */
-    login: async function(user_id, user_password) {
+    login: async function (user_id, user_password) {
         // Fallback: Jika parameter kosong, coba ambil dari DOM (untuk kompatibilitas kode lama)
         if (!user_id) user_id = document.getElementById("inputUser")?.value;
         if (!user_password) user_password = document.getElementById("inputPass")?.value;
@@ -83,7 +83,7 @@ const LoginAPI = {
      * Melakukan logout (Hapus token di server)
      * @param {string} token 
      */
-    logout: async function(token) {
+    logout: async function (token) {
         if (!token) return;
 
         try {

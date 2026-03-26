@@ -11,7 +11,7 @@ const ProfileAPI = {
      * Mengambil data profil user terbaru dari server
      * @param {string} token - Token akses user (Bearer token)
      */
-    getProfile: async function(token) {
+    getProfile: async function (token) {
         if (!token) return null;
 
         try {
@@ -30,7 +30,7 @@ const ProfileAPI = {
             }
 
             const result = await response.json();
-            
+
             console.log("[ProfileAPI] Response:", result);
 
             if (result.status === 'success' && result.data) {
@@ -41,7 +41,7 @@ const ProfileAPI = {
             }
         } catch (error) {
             console.error("[ProfileAPI] Gagal mengambil profil:", error);
-            return null; 
+            return null;
         }
     }
 };

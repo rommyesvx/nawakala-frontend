@@ -5,7 +5,7 @@
 const STORAGE_KEY_USER = 'presensi_local_user';
 const STORAGE_KEY_HISTORY = 'presensi_local_history';
 
-let currentCalendarDate = new Date(); 
+let currentCalendarDate = new Date();
 let currentUserLat = null, currentUserLon = null;
 let activeUser = null;
 let currentNotifMessage = "Tidak ada notifikasi baru.";
@@ -16,39 +16,39 @@ let currentNotifMessage = "Tidak ada notifikasi baru.";
 
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
-    const page = path.split("/").pop() || 'index.html'; 
+    const page = path.split("/").pop() || 'index.html';
     const savedUser = localStorage.getItem(STORAGE_KEY_USER);
 
     // 1. Cek Sesi Login & Load Data Lokal
     if (savedUser) {
         activeUser = JSON.parse(savedUser);
-        updateUIUserData(); 
+        updateUIUserData();
 
         // --- PERBAIKAN 1: Jalankan Update Tombol di AWAL (Global) ---
         // Hapus "if (page === 'home.html')" agar jalan di semua halaman (Presensi, Kalender, Profil)
-        updateDashboardButtonUI(); 
+        updateDashboardButtonUI();
 
         // --- SYNC PROFIL DARI API (Background) ---
         if (window.ProfileAPI && activeUser.token) {
             window.ProfileAPI.getProfile(activeUser.token).then(apiData => {
                 if (apiData) {
                     activeUser.fullname = apiData.user_name || activeUser.fullname;
-                    activeUser.user_id  = apiData.user_nip || apiData.user_id || activeUser.user_id;
-                    activeUser.address  = apiData.user_alamat || activeUser.address;
+                    activeUser.user_id = apiData.user_nip || apiData.user_id || activeUser.user_id;
+                    activeUser.address = apiData.user_alamat || activeUser.address;
                     activeUser.ttl = apiData.user_birthday ? apiData.user_birthday.split(' ')[0] : activeUser.ttl;
-                    activeUser.status   = apiData.user_type || activeUser.status; 
-                    activeUser.office   = apiData.office_name || activeUser.office;
-                    
+                    activeUser.status = apiData.user_type || activeUser.status;
+                    activeUser.office = apiData.office_name || activeUser.office;
+
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(activeUser));
                     updateUIUserData();
 
                     // --- PERBAIKAN 2: Jalankan Update Tombol setelah Sync (Global) ---
                     // Hapus "if (page === 'home.html')" di sini juga
-                    updateDashboardButtonUI(); 
+                    updateDashboardButtonUI();
                 }
             });
         }
-        
+
         if (page === 'login.html') {
             window.location.href = 'home.html';
             return;
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. LOGIKA GLOBAL
-    if (page === 'home.html') getLocation(); 
+    if (page === 'home.html') getLocation();
 
     // 3. Jalankan Logika Spesifik Halaman
     if (page === 'login.html') initLogin();
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (page === 'presensi.html') initHistoryPage();
     else if (page === 'calendar.html') initCalendarPage();
     else if (page === 'profile.html') initProfilePage();
-    else if (page === 'patrol.html') initPatrolPage(); 
+    else if (page === 'patrol.html') initPatrolPage();
 });
 
 // ==========================================
@@ -87,8 +87,8 @@ function initLogin() {
         const btn = form.querySelector('button');
         const originalBtnText = btn.innerHTML;
 
-        if(!email || !pass) return showAppModal("Gagal", "Email dan Password wajib diisi", "error");
-        
+        if (!email || !pass) return showAppModal("Gagal", "Email dan Password wajib diisi", "error");
+
         // 1. UI Loading
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Autentikasi...';
         btn.disabled = true;
@@ -119,11 +119,11 @@ function initLogin() {
                             const profileData = await window.ProfileAPI.getProfile(tempToken);
                             if (profileData) {
                                 finalUser.fullname = profileData.user_name || finalUser.fullname;
-                                finalUser.user_id  = profileData.user_nip || profileData.user_id || "-";
-                                finalUser.address  = profileData.user_alamat || "-";
+                                finalUser.user_id = profileData.user_nip || profileData.user_id || "-";
+                                finalUser.address = profileData.user_alamat || "-";
                                 finalUser.ttl = profileData.user_birthday ? profileData.user_birthday.split(' ')[0] : "-";
-                                finalUser.status   = profileData.user_type || "Pegawai";
-                                finalUser.office   = profileData.office_name || "-";
+                                finalUser.status = profileData.user_type || "Pegawai";
+                                finalUser.office = profileData.office_name || "-";
                             }
                         } catch (errProfile) {
                             console.warn("Skip profile fetch error:", errProfile);
@@ -132,15 +132,15 @@ function initLogin() {
 
                     // 4. SIMPAN DATA & REDIRECT
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(finalUser));
-                    
+
                     document.getElementById('viewLogin').classList.add('d-none');
                     document.getElementById('viewLoading').classList.remove('d-none');
-                    
-                    let pct = 50; 
+
+                    let pct = 50;
                     const interval = setInterval(() => {
                         pct += 10;
                         const elPct = document.getElementById('loadingPercent');
-                        if(elPct) elPct.innerText = pct + "%";
+                        if (elPct) elPct.innerText = pct + "%";
                         if (pct >= 100) {
                             clearInterval(interval);
                             window.location.href = 'home.html';
@@ -173,12 +173,12 @@ function initPatrolPage() {
     const btnRetake = document.getElementById('btn-retake');
     const btnSend = document.getElementById('btn-send');
     const locationInfo = document.getElementById('location-info');
-    
+
     let patrolLat = null;
     let patrolLon = null;
     let imageBase64 = null;
 
-    if (!video) return; 
+    if (!video) return;
 
     // A. Kamera
     async function startCamera() {
@@ -219,11 +219,11 @@ function initPatrolPage() {
         canvas.height = video.videoHeight;
         const context = canvas.getContext('2d');
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        imageBase64 = canvas.toDataURL('image/jpeg', 0.7); 
-        
+        imageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
         video.classList.add('hidden');
         const shutter = document.getElementById('shutter-container');
-        if(shutter) shutter.classList.add('hidden');
+        if (shutter) shutter.classList.add('hidden');
         photoResult.src = imageBase64;
         photoResult.classList.remove('hidden');
         btnRetake.classList.remove('hidden');
@@ -235,7 +235,7 @@ function initPatrolPage() {
         photoResult.classList.add('hidden');
         video.classList.remove('hidden');
         const shutter = document.getElementById('shutter-container');
-        if(shutter) shutter.classList.remove('hidden');
+        if (shutter) shutter.classList.remove('hidden');
         btnRetake.classList.add('hidden');
         checkReady();
     });
@@ -285,9 +285,9 @@ async function initHome() {
     updateDateDisplay();
     setInterval(() => { checkNotification(); }, 1000);
     checkTodayStatus();
-    
+
     // Inisialisasi Tampilan Tombol
-    updateDashboardButtonUI(); 
+    updateDashboardButtonUI();
 
     if (window.PresensiAPI && activeUser?.token) {
         const apiResult = await PresensiAPI.getHistory(activeUser.token);
@@ -305,9 +305,9 @@ async function initHome() {
             }))
         );
         updateWeeklyStatusBubbles(history);
-        
+
         // Update tombol setelah data server masuk
-        updateDashboardButtonUI(); 
+        updateDashboardButtonUI();
     }
 }
 
@@ -315,7 +315,7 @@ async function initHistoryPage() {
     if (!activeUser || !activeUser.token) return;
     const apiResult = await PresensiAPI.getHistory(activeUser.token);
     const apiHistory = apiResult?.data?.history ?? apiResult?.data?.data ?? [];
-    
+
     const history = apiHistory.map(item => ({
         dateKey: item.tanggal,
         rawDate: `${item.hari}, ${new Date(item.tanggal).toLocaleDateString('id-ID', {
@@ -343,28 +343,28 @@ function initProfilePage() {
 
 function updateUIUserData() {
     if (!activeUser) return;
-    
+
     document.querySelectorAll('.user-fullname-text').forEach(el => el.innerText = activeUser.fullname);
-    
+
     const nameParts = (activeUser.fullname || "").trim().split(/\s+/);
     let initials = '';
     for (let i = 0; i < Math.min(nameParts.length, 3); i++) {
-        if(nameParts[i]) initials += nameParts[i].charAt(0).toUpperCase();
+        if (nameParts[i]) initials += nameParts[i].charAt(0).toUpperCase();
     }
 
     document.querySelectorAll('.user-initials').forEach(el => el.innerText = initials);
-    
-    if(document.getElementById('profInitials')) {
+
+    if (document.getElementById('profInitials')) {
         document.getElementById('profInitials').innerText = initials;
-        if (initials.length === 3) document.getElementById('profInitials').style.fontSize = "2rem"; 
-        else document.getElementById('profInitials').style.fontSize = ""; 
+        if (initials.length === 3) document.getElementById('profInitials').style.fontSize = "2rem";
+        else document.getElementById('profInitials').style.fontSize = "";
     }
 
-    if(document.getElementById('profName')) document.getElementById('profName').innerText = activeUser.fullname;
-    if(document.getElementById('profuser_id')) document.getElementById('profuser_id').innerText = activeUser.user_id;
-    if(document.getElementById('profTTL')) document.getElementById('profTTL').innerText = activeUser.ttl;
-    if(document.getElementById('profAddress')) document.getElementById('profAddress').innerText = activeUser.address;
-    if(document.getElementById('profOffice')) document.getElementById('profOffice').innerText = activeUser.office || "-";
+    if (document.getElementById('profName')) document.getElementById('profName').innerText = activeUser.fullname;
+    if (document.getElementById('profuser_id')) document.getElementById('profuser_id').innerText = activeUser.user_id;
+    if (document.getElementById('profTTL')) document.getElementById('profTTL').innerText = activeUser.ttl;
+    if (document.getElementById('profAddress')) document.getElementById('profAddress').innerText = activeUser.address;
+    if (document.getElementById('profOffice')) document.getElementById('profOffice').innerText = activeUser.office || "-";
 }
 
 function processAttendance() {
@@ -384,8 +384,8 @@ function processAttendance() {
         (p) => {
             currentUserLat = p.coords.latitude;
             currentUserLon = p.coords.longitude;
-            closeAppModal(); 
-            executeAttendanceLogic(); 
+            closeAppModal();
+            executeAttendanceLogic();
         },
         () => {
             showAppModal("Gagal", "Gagal mendapatkan lokasi", "error");
@@ -402,8 +402,8 @@ function isUserSatpam() {
     if (!activeUser) return false;
 
     // 1. Ambil data Jabatan & Nama, jadikan huruf kecil semua (lowercase)
-    const jabatan = (activeUser.status || "").toLowerCase(); 
-    const nama = (activeUser.fullname || "").toLowerCase(); 
+    const jabatan = (activeUser.status || "").toLowerCase();
+    const nama = (activeUser.fullname || "").toLowerCase();
 
     // 2. Daftar kata kunci
     const keywords = ["satpam", "security", "keamanan", "pengamanan", "guard"];
@@ -414,20 +414,29 @@ function isUserSatpam() {
 
 function updateDashboardButtonUI() {
     // Gunakan querySelector agar kompatibel dengan home.html tanpa ID
-    const btnDesktop = document.querySelector('.nav-container button.btn-gradient') || document.querySelector('.nav-container button.btn-warning'); 
-    const fabMobile = document.querySelector('.fab-btn'); 
+    const btnDesktop = document.querySelector('.nav-container button.btn-gradient') || document.querySelector('.nav-container button.btn-warning');
+    const fabMobile = document.querySelector('.fab-btn');
 
     if (!btnDesktop && !fabMobile) return;
 
     const isSatpam = isUserSatpam();
     const history = getLocalHistory();
     const todayKey = formatDateKey(new Date());
-    const todayRecord = history.find(item => item.dateKey === todayKey);
+
+    // Cari entri presensi terbaru untuk hari ini (untuk memfasilitasi absen berkali-kali)
+    let todayRecord = null;
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].dateKey === todayKey) {
+            todayRecord = history[i];
+            break;
+        }
+    }
+
     const isClockedIn = todayRecord && todayRecord.inTime !== '--:--:--';
     const isClockedOut = todayRecord && todayRecord.outTime !== '--:--:--';
     const hour = new Date().getHours();
 
-    let mode = 'absen'; 
+    let mode = 'absen';
 
     // LOGIKA TAMPILAN PATROLI (Fase 2)
     // Syarat: Satpam + Sudah Masuk + Belum Pulang + Jam < 16
@@ -441,15 +450,15 @@ function updateDashboardButtonUI() {
         if (btnDesktop) {
             btnDesktop.className = "btn btn-warning rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2";
             btnDesktop.innerHTML = `<i class="fas fa-user-shield"></i> <span>Lapor Patroli</span>`;
-            btnDesktop.style.background = "#fbbf24"; 
+            btnDesktop.style.background = "#fbbf24";
             btnDesktop.style.border = "none";
-            btnDesktop.style.color = "#78350f"; 
+            btnDesktop.style.color = "#78350f";
         }
         // 2. Mobile UI
         if (fabMobile) {
-            fabMobile.style.borderColor = "#fbbf24"; 
+            fabMobile.style.borderColor = "#fbbf24";
             fabMobile.style.color = "#d97706";
-            fabMobile.innerHTML = `<i class="fas fa-user-shield"></i>`; 
+            fabMobile.innerHTML = `<i class="fas fa-user-shield"></i>`;
         }
     } else {
         // --- MODE ABSEN STANDARD ---
@@ -457,13 +466,13 @@ function updateDashboardButtonUI() {
         if (btnDesktop) {
             btnDesktop.className = "btn btn-primary rounded-pill px-4 fw-bold shadow-sm btn-gradient d-flex align-items-center gap-2";
             btnDesktop.innerHTML = `<i class="fas fa-fingerprint"></i> <span>Absen Sekarang</span>`;
-            btnDesktop.style.background = ""; 
+            btnDesktop.style.background = "";
             btnDesktop.style.color = "";
             btnDesktop.style.border = "";
         }
         // 2. Mobile UI
         if (fabMobile) {
-            fabMobile.style.borderColor = "#38bdf8"; 
+            fabMobile.style.borderColor = "#38bdf8";
             fabMobile.style.color = "#0ea5e9";
             fabMobile.innerHTML = `<i class="fas fa-fingerprint"></i>`;
         }
@@ -477,14 +486,30 @@ function updateDashboardButtonUI() {
 // ==========================================
 window.closeKdmModal = () => document.getElementById('kdmConfirmModal').classList.add('d-none');
 
-window.confirmKdmAttendance = () => {
+window.confirmKdmAttendance = async () => {
     closeKdmModal();
-    finishClockIn('KDM'); // Lanjut eksekusi absen sebagai KDM
+
+    if (window.currentAttendanceId && window.PresensiAPI && activeUser?.token) {
+        try {
+            showAppModal("Info", "Mengonfirmasi kehadiran KDM...", "warning");
+            await PresensiAPI.confirmKdm(activeUser.token, {
+                attendance_id: window.currentAttendanceId,
+                confirmation_status: true
+            });
+            closeAppModal();
+            finishClockInUI('KDM');
+        } catch (err) {
+            closeAppModal();
+            showAppModal("Gagal", "Gagal mengonfirmasi KDM: " + (err.message || err.status || "Terjadi kesalahan"), "error");
+        }
+    } else {
+        showAppModal("Error", "ID Kehadiran tidak valid.", "error");
+    }
 };
 
 async function executeAttendanceLogic() {
     if (currentUserLat == null || currentUserLon == null) {
-        processAttendance(); 
+        processAttendance();
         return;
     }
 
@@ -494,7 +519,14 @@ async function executeAttendanceLogic() {
     const timeStr = formatTimeOnly(now);
 
     const history = getLocalHistory();
-    const existingIndex = history.findIndex(item => item.dateKey === todayKey);
+    // Cari index entri presensi terbaru hari ini (mengizinkan clock in baru setelah clock out)
+    let existingIndex = -1;
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].dateKey === todayKey) {
+            existingIndex = i;
+            break;
+        }
+    }
     const todayRecord = existingIndex > -1 ? history[existingIndex] : null;
 
     const isClockedIn = todayRecord && todayRecord.inTime !== '--:--:--';
@@ -504,7 +536,7 @@ async function executeAttendanceLogic() {
     // 1. LOGIKA SATPAM: FASE 2 (PATROLI)
     if (isSatpam && isClockedIn && !isClockedOut && hour < 16) {
         window.location.href = "patrol.html";
-        return; 
+        return;
     }
 
     // 2. CEK JAM KERJA
@@ -515,34 +547,32 @@ async function executeAttendanceLogic() {
 
     try {
         // 3. LOGIKA CLOCK OUT (PULANG)
-        if (existingIndex > -1 && history[existingIndex].inTime !== '--:--:--') {
-            if (history[existingIndex].outTime !== '--:--:--') {
-                showAppModal("Info", "Anda sudah menyelesaikan presensi hari ini.", "info");
-                return;
-            }
+        // Jika sedang clock in hari ini dan entri tersebut belum di-clock out
+        if (existingIndex > -1 && isClockedIn && !isClockedOut) {
             if (hour >= 23) {
                 showAppModal("Presensi Ditutup", "Presensi pulang ditutup pukul <b>23:00</b>", "warning");
                 return;
             }
 
-            // Eksekusi Clock Out
-            history[existingIndex].outTime = timeStr;
-            saveLocalHistory(history);
-    
-            // Pengiriman API (Diabaikan sementara sesuai request, tapi strukturnya disiapkan)
+            // Pengiriman API Clock Out
+            showAppModal("Info", "Mencatat presensi pulang...", "warning");
             if (window.PresensiAPI && activeUser?.token) {
-                await PresensiAPI.submit(activeUser.token, {
-                    date: todayKey,
-                    clock_out_time: timeStr,
-                    clock_out_lat: currentUserLat,
-                    clock_out_lng: currentUserLon
+                await PresensiAPI.clockOut(activeUser.token, {
+                    latitude: currentUserLat,
+                    longitude: currentUserLon
                 });
             }
+            closeAppModal();
+
+            // Eksekusi Update UI Lokal
+            history[existingIndex].outTime = timeStr;
+            saveLocalHistory(history);
+
             showAppModal("Berhasil", "Presensi pulang berhasil dicatat", "success");
-            
+
             renderHistoryUI(history);
-            updateDashboardButtonUI(); 
-            checkTodayStatus(); 
+            updateDashboardButtonUI();
+            checkTodayStatus();
             return;
         }
 
@@ -551,28 +581,27 @@ async function executeAttendanceLogic() {
             showAppModal("Belum Waktunya", `Presensi masuk dibuka pukul <b>05:00</b><br>Sekarang pukul <b>${timeStr}</b>`, "warning");
             return;
         }
-        if (existingIndex > -1) {
-            showAppModal("Info", "Anda sudah melakukan presensi masuk hari ini.", "info");
-            return;
-        }
 
-        // --- TAHAP PENGECEKAN LOKASI KE API ---
-        // Karena butuh pop-up konfirmasi SEBELUM data di-submit, idealnya ada endpoint API untuk "Check Location"
-        // Contoh penggunaannya nanti:
-        // const checkResult = await PresensiAPI.checkLocation(activeUser.token, currentUserLat, currentUserLon);
-        // const isLuarArea = checkResult.is_outside_polygon; 
+        showAppModal("Info", "Mencatat presensi masuk...", "warning");
+        // --- TAHAP PENGECEKAN LOKASI & CLOCK IN API ---
+        if (window.PresensiAPI && activeUser?.token) {
+            const result = await PresensiAPI.clockIn(activeUser.token, {
+                latitude: currentUserLat,
+                longitude: currentUserLon
+            });
+            closeAppModal();
 
-        // [SIMULASI FRONTEND]
-        // Set ke "true" untuk mengetes pop-up KDM muncul. 
-        // Ubah ke "false" jika ingin mengetes absen KDK yang langsung masuk tanpa pop-up.
-        const isLuarArea = true; 
-
-        if (isLuarArea) {
-            // Tampilkan Modal KDM (Membutuhkan HTML kdmConfirmModal yang saya berikan sebelumnya)
-            document.getElementById('kdmConfirmModal').classList.remove('d-none');
+            if (result && result.httpStatus === 202) {
+                // Tampilkan Modal KDM, Simpan ID kehadiran secara global
+                window.currentAttendanceId = result.data.attendance_id;
+                document.getElementById('kdmConfirmModal').classList.remove('d-none');
+            } else if (result && result.httpStatus === 200) {
+                // Berhasil absen di area kantor (KDK)
+                finishClockInUI('KDK');
+            }
         } else {
-            // Jika di dalam polygon, langsung absen sebagai KDK (Kerja Di Kantor)
-            finishClockIn('KDK');
+            closeAppModal();
+            showAppModal("Error", "PresensiAPI/Token tidak tersedia", "error");
         }
 
     } catch (err) {
@@ -580,7 +609,8 @@ async function executeAttendanceLogic() {
     }
 }
 
-async function finishClockIn(statusPresensi) {
+// Fungsi ini hanya menangani penyimpanan UI lokal karena API call sudah ditangani di atas
+function finishClockInUI(statusPresensi) {
     const now = new Date();
     const todayKey = formatDateKey(now);
     const timeStr = formatTimeOnly(now);
@@ -597,38 +627,34 @@ async function finishClockIn(statusPresensi) {
 
     saveLocalHistory(history);
 
-    // PROSES SUBMIT KE API
-    if (window.PresensiAPI && activeUser?.token) {
-        await PresensiAPI.submit(activeUser.token, {
-            date: todayKey,
-            clock_in_time: timeStr,
-            latitude: currentUserLat,
-            longitude: currentUserLon,
-            status: statusPresensi // Status KDK/KDM dikirim ke backend
-        });
-    }
-
     showAppModal("Berhasil", `Presensi Masuk (<b>${statusPresensi}</b>) Berhasil Dicatat`, "success");
-    
+
     renderHistoryUI(history);
-    updateDashboardButtonUI(); 
-    checkTodayStatus(); 
+    updateDashboardButtonUI();
+    checkTodayStatus();
 }
 
 function renderHistoryUI(historyData) {
     if (!Array.isArray(historyData)) historyData = [];
 
-    historyData.sort((a,b) => b.dateKey.localeCompare(a.dateKey));
+    historyData.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 
     const dashList = document.getElementById('dashboardHistoryList');
     if (dashList) {
         let kdk = 0, kdm = 0, html = '';
+        const countedDates = new Set();
+
         historyData.forEach((rec, idx) => {
-            if(rec.type === 'KDK') kdk++; else kdm++;
-            const badgeColor = '#f59e0b'; 
+            // Menghitung status KDK/KDM maksimal 1x sehari untuk dashboard
+            if (!countedDates.has(rec.dateKey)) {
+                countedDates.add(rec.dateKey);
+                if (rec.type === 'KDK') kdk++; else kdm++;
+            }
+
+            const badgeColor = '#f59e0b';
 
             if (idx < 3) {
-                 html += `
+                html += `
                  <div class="hist-item-gradient mb-2">
                     <div>
                         <div class="fw-bold small">${rec.rawDate}</div>
@@ -642,20 +668,20 @@ function renderHistoryUI(historyData) {
             }
         });
         dashList.innerHTML = html || '<div class="text-center text-muted small py-3">Belum ada riwayat.</div>';
-        if(document.getElementById('countKDK')) document.getElementById('countKDK').innerText = kdk;
-        if(document.getElementById('countKDM')) document.getElementById('countKDM').innerText = kdm;
+        if (document.getElementById('countKDK')) document.getElementById('countKDK').innerText = kdk;
+        if (document.getElementById('countKDM')) document.getElementById('countKDM').innerText = kdm;
     }
 
     const tableList = document.getElementById('fullHistoryList');
     if (tableList) {
         let fullHtml = '';
         historyData.forEach(rec => {
-            const dateParts = rec.rawDate.split(','); 
+            const dateParts = rec.rawDate.split(',');
             const dayName = dateParts[0];
             const fullDate = dateParts[1] || rec.rawDate;
-            const badgeColor = '#f59e0b'; 
+            const badgeColor = '#f59e0b';
 
-             fullHtml += `
+            fullHtml += `
              <tr>
                 <td class="ps-4 py-3">
                     <div class="d-flex flex-column">
@@ -675,7 +701,14 @@ function renderHistoryUI(historyData) {
 function checkTodayStatus() {
     const todayKey = formatDateKey(new Date());
     const history = getLocalHistory();
-    const todayData = history.find(item => item.dateKey === todayKey);
+    // Cari entri presensi terbaru untuk hari ini
+    let todayData = null;
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].dateKey === todayKey) {
+            todayData = history[i];
+            break;
+        }
+    }
 
     const elIn = document.getElementById('clockInDisplay');
     const elOut = document.getElementById('clockOutDisplay');
@@ -697,21 +730,21 @@ function updateWeeklyStatusBubbles(apiHistory = null) {
 
     const history = getLocalHistory();
     const now = new Date();
-    const currentDay = now.getDay(); 
+    const currentDay = now.getDay();
     const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
     const mondayDate = new Date(now);
     mondayDate.setDate(now.getDate() - distanceToMonday);
 
     let html = '';
-    const days = ['S', 'S', 'R', 'K', 'J']; 
+    const days = ['S', 'S', 'R', 'K', 'J'];
 
     for (let i = 0; i < 5; i++) {
         const checkDate = new Date(mondayDate);
         checkDate.setDate(mondayDate.getDate() + i);
         const dateKey = formatDateKey(checkDate);
-        
+
         const record = history.find(h => h.dateKey === dateKey && h.inTime !== '--:--:--');
-        
+
         if (record) {
             html += `<div class="bubble active"><i class="fas fa-check"></i></div>`;
         } else {
@@ -728,11 +761,11 @@ function updateWeeklyStatusBubbles(apiHistory = null) {
 function checkNotification() {
     const now = new Date();
     const hour = now.getHours();
-    
+
     const elIn = document.getElementById('clockInDisplay');
     const elOut = document.getElementById('clockOutDisplay');
-    
-    if (!elIn || !elOut) return; 
+
+    if (!elIn || !elOut) return;
 
     const isCheckedIn = elIn.innerText !== '--:--:--';
     const isCheckedOut = elOut.innerText !== '--:--:--';
@@ -779,9 +812,9 @@ function formatTimeOnly(dateObj) {
 
 function updateDateDisplay() {
     const d = new Date();
-    if(document.getElementById('dashDateNum')) {
+    if (document.getElementById('dashDateNum')) {
         const dNum = d.getDate();
-        let suffix = (dNum===1||dNum===21||dNum===31)?'st':(dNum===2||dNum===22)?'nd':(dNum===3||dNum===23)?'rd':'th';
+        let suffix = (dNum === 1 || dNum === 21 || dNum === 31) ? 'st' : (dNum === 2 || dNum === 22) ? 'nd' : (dNum === 3 || dNum === 23) ? 'rd' : 'th';
         document.getElementById('dashDateNum').innerHTML = `${dNum}<sup class="fs-4">${suffix}</sup>`;
         document.getElementById('dashDateDay').innerText = d.toLocaleDateString('id-ID', { weekday: 'long' });
         document.getElementById('dashDateMonth').innerText = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
@@ -791,11 +824,11 @@ function updateDateDisplay() {
 function getLocation() {
     if (navigator.geolocation) {
         const textEls = document.querySelectorAll('.locationTextShort');
-        
+
         // 1. Reset warna ke default (menghapus inline style) saat mulai mencari
-        textEls.forEach(el => { 
-            el.innerText = "Mencari..."; 
-            el.style.color = ''; 
+        textEls.forEach(el => {
+            el.innerText = "Mencari...";
+            el.style.color = '';
         });
 
         navigator.geolocation.getCurrentPosition(
@@ -809,16 +842,16 @@ function getLocation() {
                         textEls.forEach(el => {
                             el.innerText = locName || "Tersambung";
                             // 2. PERBAIKAN: Paksa reset warna lagi saat sukses untuk jaga-jaga
-                            el.style.color = ''; 
+                            el.style.color = '';
                         });
                     })
-                    .catch(() => textEls.forEach(el => { 
-                        el.innerText = "GPS OK"; 
+                    .catch(() => textEls.forEach(el => {
+                        el.innerText = "GPS OK";
                         el.style.color = ''; // Reset warna juga saat fallback API
                     }));
             },
-            () => textEls.forEach(el => { 
-                el.innerText = "GPS Error"; 
+            () => textEls.forEach(el => {
+                el.innerText = "GPS Error";
                 el.style.color = 'red'; // Set merah hanya saat error
             })
         );
@@ -827,16 +860,16 @@ function getLocation() {
 
 async function renderCalendar() {
     const elGrid = document.getElementById('calendarGrid');
-    if (!elGrid) return; 
+    if (!elGrid) return;
 
     elGrid.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="fas fa-spinner fa-spin"></i> Memuat...</div>';
 
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
     const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-    
+
     document.getElementById('calendarTitle').innerText = `${monthNames[month]} ${year}`;
-    
+
     let holidaysData = {};
     if (window.CalendarAPI) {
         holidaysData = await window.CalendarAPI.getHolidays(month + 1, year);
@@ -844,8 +877,8 @@ async function renderCalendar() {
         console.error("Gagal memuat CalendarAPI.");
     }
 
-    const firstDay = new Date(year, month, 1).getDay(); 
-    const daysInMonth = new Date(year, month + 1, 0).getDate(); 
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
 
     let html = '';
@@ -857,32 +890,32 @@ async function renderCalendar() {
         const strMonth = String(month + 1).padStart(2, '0');
         const strDay = String(day).padStart(2, '0');
         const dateKey = `${year}-${strMonth}-${strDay}`;
-        
+
         const holiday = holidaysData[dateKey];
         const dateCheck = new Date(year, month, day);
         const isWeekend = dateCheck.getDay() === 0 || dateCheck.getDay() === 6;
-        
+
         let classes = 'calendar-day';
-        
+
         if (today.getDate() === day && today.getMonth() === month && today.getFullYear() === year) {
             classes += ' today';
         } else if (holiday) {
             holidaysInMonth.push({ date: day, name: holiday.name, type: holiday.type });
             classes += holiday.type === 'cuti' ? ' text-warning fw-bold' : ' text-danger fw-bold';
         } else if (isWeekend) {
-            classes += ' text-danger'; 
+            classes += ' text-danger';
         }
-        
+
         const hist = getLocalHistory();
         const hasAbsen = hist.find(h => h.dateKey === dateKey && h.outTime !== '--:--:--');
         let dot = hasAbsen ? `<div style="height:4px;width:4px;background:#10b981;border-radius:50%"></div>` : '';
-        
+
         let onclick = '';
         if (holiday) {
             const safeName = holiday.name.replace(/'/g, "\\'");
             onclick = `onclick="showHolidayInfo('${safeName}', '${day} ${monthNames[month]}', '${holiday.type}')"`;
         }
-        
+
         html += `<div class="${classes}" ${onclick}>
                     <div class="d-flex flex-column align-items-center justify-content-center w-100 h-100">
                         ${day}${dot}
@@ -890,9 +923,9 @@ async function renderCalendar() {
                  </div>`;
     }
     elGrid.innerHTML = html;
-    
+
     const holList = document.getElementById('holidayList');
-    if(holList) {
+    if (holList) {
         let hHtml = '';
         if (holidaysInMonth.length > 0) {
             holidaysInMonth.forEach(h => {
@@ -929,23 +962,23 @@ window.showHolidayInfo = (name, date, type) => {
     showAppModal(type === 'cuti' ? "Cuti Bersama" : "Libur Nasional", `<h6 class="fw-bold">${date}</h6><p class="mb-0 text-muted">${name}</p>`, type === 'cuti' ? 'warning' : 'error');
 };
 
-window.showAppModal = (t, m, type='success') => {
+window.showAppModal = (t, m, type = 'success') => {
     document.getElementById('modalTitle').innerText = t;
     document.getElementById('modalMessage').innerHTML = m;
     const icon = document.getElementById('modalIcon');
     const bg = document.getElementById('modalIconBg');
-    
+
     if (type === 'error') { icon.className = 'fas fa-times'; bg.style.background = '#fee2e2'; bg.style.color = '#ef4444'; }
     else if (type === 'warning') { icon.className = 'fas fa-exclamation-triangle'; bg.style.background = '#fef3c7'; bg.style.color = '#d97706'; }
     else { icon.className = 'fas fa-check'; bg.style.background = '#e0f2fe'; bg.style.color = '#0ea5e9'; }
-    
+
     document.getElementById('appModal').classList.remove('d-none');
 };
 
 window.closeAppModal = () => document.getElementById('appModal').classList.add('d-none');
 window.handleLogout = () => document.getElementById('logoutModal').classList.remove('d-none');
 window.closeLogoutModal = () => document.getElementById('logoutModal').classList.add('d-none');
-  
+
 window.confirmLogout = async () => {
     const savedUser = localStorage.getItem(STORAGE_KEY_USER);
     if (savedUser) {

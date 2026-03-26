@@ -11,7 +11,7 @@ const PatrolAPI = {
      * @param {string} token - Token user dari localStorage
      * @param {object} data - Payload { latitude, longitude, note, image }
      */
-    submitReport: async function(token, data) {
+    submitReport: async function (token, data) {
         console.log("Mengirim laporan patroli...", data);
 
         try {
