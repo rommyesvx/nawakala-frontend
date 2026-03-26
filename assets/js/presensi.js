@@ -19,7 +19,6 @@ const PresensiAPI = {
             const data = await res.json();
             console.log("CLOCK IN API:", data);
 
-            // Tambahkan httpStatus ke dalam object data agar frontend (UI) bisa mengecek dengan mudah (Contoh: 202 untuk KDM)
             data.httpStatus = res.status;
 
             if (!res.ok) throw data;

@@ -19,16 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const page = path.split("/").pop() || 'index.html';
     const savedUser = localStorage.getItem(STORAGE_KEY_USER);
 
-    // 1. Cek Sesi Login & Load Data Lokal
     if (savedUser) {
         activeUser = JSON.parse(savedUser);
         updateUIUserData();
 
-        // --- PERBAIKAN 1: Jalankan Update Tombol di AWAL (Global) ---
-        // Hapus "if (page === 'home.html')" agar jalan di semua halaman (Presensi, Kalender, Profil)
         updateDashboardButtonUI();
 
-        // --- SYNC PROFIL DARI API (Background) ---
         if (window.ProfileAPI && activeUser.token) {
             window.ProfileAPI.getProfile(activeUser.token).then(apiData => {
                 if (apiData) {
@@ -42,8 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(activeUser));
                     updateUIUserData();
 
-                    // --- PERBAIKAN 2: Jalankan Update Tombol setelah Sync (Global) ---
-                    // Hapus "if (page === 'home.html')" di sini juga
                     updateDashboardButtonUI();
                 }
             });
@@ -60,10 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 2. LOGIKA GLOBAL
     if (page === 'home.html') getLocation();
 
-    // 3. Jalankan Logika Spesifik Halaman
     if (page === 'login.html') initLogin();
     else if (page === 'home.html') initHome();
     else if (page === 'presensi.html') initHistoryPage();
@@ -89,23 +81,19 @@ function initLogin() {
 
         if (!email || !pass) return showAppModal("Gagal", "Email dan Password wajib diisi", "error");
 
-        // 1. UI Loading
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Autentikasi...';
         btn.disabled = true;
 
         if (window.LoginAPI) {
             try {
-                // 2. LOGIN REQUEST
                 const result = await window.LoginAPI.login(email, pass);
 
                 if (result.status === 'success' && result.data) {
                     const tempUser = result.data.user;
                     const tempToken = result.data.token;
 
-                    // Update UI Loading Tahap 2
                     btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Memuat Profil...';
 
-                    // 3. PROFILE REQUEST (Fetch Role Jabatan sebelum masuk Home)
                     let finalUser = {
                         username: tempUser.email,
                         fullname: tempUser.name || "User",
@@ -113,7 +101,6 @@ function initLogin() {
                         user_id: "-", ttl: "-", address: "-", status: "Pegawai", office: "-"
                     };
 
-                    // Panggil Profile API
                     if (window.ProfileAPI) {
                         try {
                             const profileData = await window.ProfileAPI.getProfile(tempToken);
@@ -130,7 +117,6 @@ function initLogin() {
                         }
                     }
 
-                    // 4. SIMPAN DATA & REDIRECT
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(finalUser));
 
                     document.getElementById('viewLogin').classList.add('d-none');
@@ -286,7 +272,6 @@ async function initHome() {
     setInterval(() => { checkNotification(); }, 1000);
     checkTodayStatus();
 
-    // Inisialisasi Tampilan Tombol
     updateDashboardButtonUI();
 
     if (window.PresensiAPI && activeUser?.token) {
@@ -306,7 +291,6 @@ async function initHome() {
         );
         updateWeeklyStatusBubbles(history);
 
-        // Update tombol setelah data server masuk
         updateDashboardButtonUI();
     }
 }
@@ -334,7 +318,6 @@ function initCalendarPage() {
 }
 
 function initProfilePage() {
-    // Data dihandle global oleh updateUIUserData()
 }
 
 // ==========================================
@@ -396,24 +379,19 @@ function processAttendance() {
 
 // --- FUNGSI HELPER: CEK ROLE & UPDATE TAMPILAN ---
 
-// Cari function isUserSatpam() yang lama, dan GANTI dengan yang ini:
 
 function isUserSatpam() {
     if (!activeUser) return false;
 
-    // 1. Ambil data Jabatan & Nama, jadikan huruf kecil semua (lowercase)
     const jabatan = (activeUser.status || "").toLowerCase();
     const nama = (activeUser.fullname || "").toLowerCase();
 
-    // 2. Daftar kata kunci
     const keywords = ["satpam", "security", "keamanan", "pengamanan", "guard"];
 
-    // 3. Logika: TRUE jika (Jabatan ada keyword) ATAU (Nama ada keyword)
     return keywords.some(key => jabatan.includes(key) || nama.includes(key));
 }
 
 function updateDashboardButtonUI() {
-    // Gunakan querySelector agar kompatibel dengan home.html tanpa ID
     const btnDesktop = document.querySelector('.nav-container button.btn-gradient') || document.querySelector('.nav-container button.btn-warning');
     const fabMobile = document.querySelector('.fab-btn');
 
@@ -423,7 +401,6 @@ function updateDashboardButtonUI() {
     const history = getLocalHistory();
     const todayKey = formatDateKey(new Date());
 
-    // Cari entri presensi terbaru untuk hari ini (untuk memfasilitasi absen berkali-kali)
     let todayRecord = null;
     for (let i = history.length - 1; i >= 0; i--) {
         if (history[i].dateKey === todayKey) {
@@ -438,15 +415,11 @@ function updateDashboardButtonUI() {
 
     let mode = 'absen';
 
-    // LOGIKA TAMPILAN PATROLI (Fase 2)
-    // Syarat: Satpam + Sudah Masuk + Belum Pulang + Jam < 16
     if (isSatpam && isClockedIn && !isClockedOut && hour < 16) {
         mode = 'patroli';
     }
 
     if (mode === 'patroli') {
-        // --- MODE PATROLI ---
-        // 1. Desktop UI
         if (btnDesktop) {
             btnDesktop.className = "btn btn-warning rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2";
             btnDesktop.innerHTML = `<i class="fas fa-user-shield"></i> <span>Lapor Patroli</span>`;
@@ -454,15 +427,12 @@ function updateDashboardButtonUI() {
             btnDesktop.style.border = "none";
             btnDesktop.style.color = "#78350f";
         }
-        // 2. Mobile UI
         if (fabMobile) {
             fabMobile.style.borderColor = "#fbbf24";
             fabMobile.style.color = "#d97706";
             fabMobile.innerHTML = `<i class="fas fa-user-shield"></i>`;
         }
     } else {
-        // --- MODE ABSEN STANDARD ---
-        // 1. Desktop UI
         if (btnDesktop) {
             btnDesktop.className = "btn btn-primary rounded-pill px-4 fw-bold shadow-sm btn-gradient d-flex align-items-center gap-2";
             btnDesktop.innerHTML = `<i class="fas fa-fingerprint"></i> <span>Absen Sekarang</span>`;
@@ -470,7 +440,6 @@ function updateDashboardButtonUI() {
             btnDesktop.style.color = "";
             btnDesktop.style.border = "";
         }
-        // 2. Mobile UI
         if (fabMobile) {
             fabMobile.style.borderColor = "#38bdf8";
             fabMobile.style.color = "#0ea5e9";
@@ -479,7 +448,6 @@ function updateDashboardButtonUI() {
     }
 }
 
-// --- UPDATE LOGIKA UTAMA TOMBOL (STANDARD LOGIC RESTORED) ---
 
 // ==========================================
 // KONTROL MODAL KDM
@@ -519,7 +487,6 @@ async function executeAttendanceLogic() {
     const timeStr = formatTimeOnly(now);
 
     const history = getLocalHistory();
-    // Cari index entri presensi terbaru hari ini (mengizinkan clock in baru setelah clock out)
     let existingIndex = -1;
     for (let i = history.length - 1; i >= 0; i--) {
         if (history[i].dateKey === todayKey) {
@@ -533,28 +500,23 @@ async function executeAttendanceLogic() {
     const isClockedOut = todayRecord && todayRecord.outTime !== '--:--:--';
     const isSatpam = isUserSatpam();
 
-    // 1. LOGIKA SATPAM: FASE 2 (PATROLI)
     if (isSatpam && isClockedIn && !isClockedOut && hour < 16) {
         window.location.href = "patrol.html";
         return;
     }
 
-    // 2. CEK JAM KERJA
     if (hour < 5 || hour >= 23) {
         showAppModal("Di Luar Jam Kerja", "Sistem presensi ditutup.<br>Jam operasional: <b>05:00 - 23:00</b>", "warning");
         return;
     }
 
     try {
-        // 3. LOGIKA CLOCK OUT (PULANG)
-        // Jika sedang clock in hari ini dan entri tersebut belum di-clock out
         if (existingIndex > -1 && isClockedIn && !isClockedOut) {
             if (hour >= 23) {
                 showAppModal("Presensi Ditutup", "Presensi pulang ditutup pukul <b>23:00</b>", "warning");
                 return;
             }
 
-            // Pengiriman API Clock Out
             showAppModal("Info", "Mencatat presensi pulang...", "warning");
             if (window.PresensiAPI && activeUser?.token) {
                 await PresensiAPI.clockOut(activeUser.token, {
@@ -564,7 +526,6 @@ async function executeAttendanceLogic() {
             }
             closeAppModal();
 
-            // Eksekusi Update UI Lokal
             history[existingIndex].outTime = timeStr;
             saveLocalHistory(history);
 
@@ -576,14 +537,12 @@ async function executeAttendanceLogic() {
             return;
         }
 
-        // 4. LOGIKA CLOCK IN (MASUK) - VALIDASI GEOFENCING
         if (hour < 5) {
             showAppModal("Belum Waktunya", `Presensi masuk dibuka pukul <b>05:00</b><br>Sekarang pukul <b>${timeStr}</b>`, "warning");
             return;
         }
 
         showAppModal("Info", "Mencatat presensi masuk...", "warning");
-        // --- TAHAP PENGECEKAN LOKASI & CLOCK IN API ---
         if (window.PresensiAPI && activeUser?.token) {
             const result = await PresensiAPI.clockIn(activeUser.token, {
                 latitude: currentUserLat,
@@ -592,11 +551,9 @@ async function executeAttendanceLogic() {
             closeAppModal();
 
             if (result && result.httpStatus === 202) {
-                // Tampilkan Modal KDM, Simpan ID kehadiran secara global
                 window.currentAttendanceId = result.data.attendance_id;
                 document.getElementById('kdmConfirmModal').classList.remove('d-none');
             } else if (result && result.httpStatus === 200) {
-                // Berhasil absen di area kantor (KDK)
                 finishClockInUI('KDK');
             }
         } else {
@@ -609,14 +566,12 @@ async function executeAttendanceLogic() {
     }
 }
 
-// Fungsi ini hanya menangani penyimpanan UI lokal karena API call sudah ditangani di atas
 function finishClockInUI(statusPresensi) {
     const now = new Date();
     const todayKey = formatDateKey(now);
     const timeStr = formatTimeOnly(now);
     const history = getLocalHistory();
 
-    // PROSES PENYIMPANAN LOKAL
     history.push({
         dateKey: todayKey,
         rawDate: now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
@@ -645,7 +600,6 @@ function renderHistoryUI(historyData) {
         const countedDates = new Set();
 
         historyData.forEach((rec, idx) => {
-            // Menghitung status KDK/KDM maksimal 1x sehari untuk dashboard
             if (!countedDates.has(rec.dateKey)) {
                 countedDates.add(rec.dateKey);
                 if (rec.type === 'KDK') kdk++; else kdm++;
@@ -701,7 +655,6 @@ function renderHistoryUI(historyData) {
 function checkTodayStatus() {
     const todayKey = formatDateKey(new Date());
     const history = getLocalHistory();
-    // Cari entri presensi terbaru untuk hari ini
     let todayData = null;
     for (let i = history.length - 1; i >= 0; i--) {
         if (history[i].dateKey === todayKey) {
@@ -825,7 +778,6 @@ function getLocation() {
     if (navigator.geolocation) {
         const textEls = document.querySelectorAll('.locationTextShort');
 
-        // 1. Reset warna ke default (menghapus inline style) saat mulai mencari
         textEls.forEach(el => {
             el.innerText = "Mencari...";
             el.style.color = '';
@@ -841,18 +793,17 @@ function getLocation() {
                         const locName = (data.locality || '') + ", " + (data.city || '');
                         textEls.forEach(el => {
                             el.innerText = locName || "Tersambung";
-                            // 2. PERBAIKAN: Paksa reset warna lagi saat sukses untuk jaga-jaga
                             el.style.color = '';
                         });
                     })
                     .catch(() => textEls.forEach(el => {
                         el.innerText = "GPS OK";
-                        el.style.color = ''; // Reset warna juga saat fallback API
+                        el.style.color = '';
                     }));
             },
             () => textEls.forEach(el => {
                 el.innerText = "GPS Error";
-                el.style.color = 'red'; // Set merah hanya saat error
+                el.style.color = 'red';
             })
         );
     }
