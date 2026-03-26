@@ -505,18 +505,8 @@ async function executeAttendanceLogic() {
         return;
     }
 
-    if (hour < 5 || hour >= 23) {
-        showAppModal("Di Luar Jam Kerja", "Sistem presensi ditutup.<br>Jam operasional: <b>05:00 - 23:00</b>", "warning");
-        return;
-    }
-
     try {
         if (existingIndex > -1 && isClockedIn && !isClockedOut) {
-            if (hour >= 23) {
-                showAppModal("Presensi Ditutup", "Presensi pulang ditutup pukul <b>23:00</b>", "warning");
-                return;
-            }
-
             showAppModal("Info", "Mencatat presensi pulang...", "warning");
             if (window.PresensiAPI && activeUser?.token) {
                 await PresensiAPI.clockOut(activeUser.token, {
@@ -534,11 +524,6 @@ async function executeAttendanceLogic() {
             renderHistoryUI(history);
             updateDashboardButtonUI();
             checkTodayStatus();
-            return;
-        }
-
-        if (hour < 5) {
-            showAppModal("Belum Waktunya", `Presensi masuk dibuka pukul <b>05:00</b><br>Sekarang pukul <b>${timeStr}</b>`, "warning");
             return;
         }
 

@@ -1,5 +1,5 @@
 const LoginAPI = {
-    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api",
+    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api/v2",
 
     /**
      * Melakukan login user

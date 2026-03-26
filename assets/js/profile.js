@@ -5,7 +5,7 @@
  */
 
 const ProfileAPI = {
-    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api",
+    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api/v2",
 
     /**
      * Mengambil data profil user terbaru dari server
