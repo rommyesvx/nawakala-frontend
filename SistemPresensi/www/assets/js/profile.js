@@ -5,13 +5,13 @@
  */
 
 const ProfileAPI = {
-    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api",
+    baseUrl: window.API_BASE_URL,
 
     /**
      * Mengambil data profil user terbaru dari server
      * @param {string} token - Token akses user (Bearer token)
      */
-    getProfile: async function(token) {
+    getProfile: async function (token) {
         if (!token) return null;
 
         try {
@@ -25,12 +25,17 @@ const ProfileAPI = {
                 }
             });
 
+            if (response.status === 401) {
+                if (typeof window.handleUnauthorized === 'function') window.handleUnauthorized();
+                throw new Error("Unauthorized");
+            }
+
             if (!response.ok) {
                 throw new Error(`HTTP Error: ${response.status}`);
             }
 
             const result = await response.json();
-            
+
             console.log("[ProfileAPI] Response:", result);
 
             if (result.status === 'success' && result.data) {
@@ -41,7 +46,7 @@ const ProfileAPI = {
             }
         } catch (error) {
             console.error("[ProfileAPI] Gagal mengambil profil:", error);
-            return null; 
+            return null;
         }
     }
 };

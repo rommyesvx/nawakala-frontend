@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeUser.address = apiData.user_alamat || activeUser.address;
                     activeUser.ttl = apiData.user_birthday ? apiData.user_birthday.split(' ')[0] : activeUser.ttl;
                     activeUser.status = apiData.user_type || activeUser.status;
+                    activeUser.user_jabatan = apiData.user_jabatan || activeUser.user_jabatan;
+                    activeUser.is_security = (typeof apiData.is_security !== 'undefined') ? apiData.is_security : (apiData.user_jabatan === 'Petugas Keamanan');
                     activeUser.office = apiData.office_name || activeUser.office;
 
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(activeUser));
@@ -54,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (page === 'home.html') getLocation();
+    getLocation(false);
 
     if (page === 'login.html') initLogin();
     else if (page === 'home.html') initHome();
@@ -95,10 +97,16 @@ function initLogin() {
                     btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Memuat Profil...';
 
                     let finalUser = {
-                        username: tempUser.email,
+                        username: tempUser.user_id || tempUser.name || "User",
                         fullname: tempUser.name || "User",
                         token: tempToken,
-                        user_id: "-", ttl: "-", address: "-", status: "Pegawai", office: "-"
+                        user_id: tempUser.user_id || "-",
+                        ttl: "-",
+                        address: "-",
+                        status: tempUser.user_type || "Pegawai",
+                        user_jabatan: tempUser.user_jabatan || null,
+                        is_security: tempUser.is_security || false,
+                        office: "-"
                     };
 
                     if (window.ProfileAPI) {
@@ -106,10 +114,12 @@ function initLogin() {
                             const profileData = await window.ProfileAPI.getProfile(tempToken);
                             if (profileData) {
                                 finalUser.fullname = profileData.user_name || finalUser.fullname;
-                                finalUser.user_id = profileData.user_nip || profileData.user_id || "-";
+                                finalUser.user_id = profileData.user_nip || profileData.user_id || finalUser.user_id;
                                 finalUser.address = profileData.user_alamat || "-";
                                 finalUser.ttl = profileData.user_birthday ? profileData.user_birthday.split(' ')[0] : "-";
-                                finalUser.status = profileData.user_type || "Pegawai";
+                                finalUser.status = profileData.user_type || finalUser.status;
+                                finalUser.user_jabatan = profileData.user_jabatan || finalUser.user_jabatan;
+                                finalUser.is_security = (typeof profileData.is_security !== 'undefined') ? profileData.is_security : finalUser.is_security;
                                 finalUser.office = profileData.office_name || "-";
                             }
                         } catch (errProfile) {
@@ -117,6 +127,7 @@ function initLogin() {
                         }
                     }
 
+                    localStorage.removeItem(STORAGE_KEY_HISTORY);
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(finalUser));
 
                     document.getElementById('viewLogin').classList.add('d-none');
@@ -267,50 +278,92 @@ function initPatrolPage() {
 
 // -----------------------------------------------------------
 
+async function refreshHistoryFromAPI() {
+    if (!activeUser?.token || !window.PresensiAPI) {
+        renderHistoryUI(getLocalHistory());
+        checkTodayStatus();
+        updateDashboardButtonUI();
+        return;
+    }
+
+    try {
+        const todayRes = await PresensiAPI.getTodayStatus(activeUser.token);
+        let todayApiData = null;
+        if (todayRes && todayRes.status === 'success' && todayRes.data) {
+            todayApiData = todayRes.data;
+            if (todayApiData.schedule) {
+                updateTodayScheduleUI(todayApiData.schedule);
+            }
+        }
+
+        const apiResult = await PresensiAPI.getHistory(activeUser.token);
+        const historyList = Array.isArray(apiResult?.data?.history) ? apiResult.data.history : [];
+
+        const mappedHistory = historyList.map(item => ({
+            dateKey: item.tanggal,
+            rawDate: `${item.hari}, ${new Date(item.tanggal).toLocaleDateString('id-ID', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            })}`,
+            inTime: (item.jam_masuk && item.jam_masuk !== '-') ? item.jam_masuk : '--:--:--',
+            outTime: (item.jam_keluar && item.jam_keluar !== '-') ? item.jam_keluar : '--:--:--',
+            type: item.status || 'KDK'
+        }));
+
+        if (todayApiData) {
+            const todayKey = formatDateKey(new Date());
+            let todayItem = mappedHistory.find(h => h.dateKey === todayKey);
+
+            if (todayApiData.status === 'not_clocked_in') {
+                if (todayItem) {
+                    const idx = mappedHistory.indexOf(todayItem);
+                    if (idx > -1) mappedHistory.splice(idx, 1);
+                }
+            } else {
+                const formatTime = (timeStr) => {
+                    if (!timeStr) return '--:--:--';
+                    const parts = timeStr.split(' ');
+                    return parts[1] || timeStr;
+                };
+
+                const inTime = formatTime(todayApiData.clock_in_time);
+                const outTime = formatTime(todayApiData.clock_out_time);
+
+                if (todayItem) {
+                    if (inTime !== '--:--:--') todayItem.inTime = inTime;
+                    if (outTime !== '--:--:--') todayItem.outTime = outTime;
+                } else {
+                    mappedHistory.push({
+                        dateKey: todayKey,
+                        rawDate: new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+                        inTime: inTime,
+                        outTime: outTime,
+                        type: 'KDK'
+                    });
+                }
+            }
+        }
+
+        saveLocalHistory(mappedHistory);
+        renderHistoryUI(mappedHistory);
+        updateWeeklyStatusBubbles(historyList);
+
+    } catch (err) {
+        console.warn("Skip refreshHistoryFromAPI error:", err);
+        renderHistoryUI(getLocalHistory());
+    }
+
+    checkTodayStatus();
+    updateDashboardButtonUI();
+}
+
 async function initHome() {
     updateDateDisplay();
     setInterval(() => { checkNotification(); }, 1000);
-    checkTodayStatus();
-
-    updateDashboardButtonUI();
-
-    if (window.PresensiAPI && activeUser?.token) {
-        const apiResult = await PresensiAPI.getHistory(activeUser.token);
-        const history = Array.isArray(apiResult?.data?.history) ? apiResult.data.history : [];
-
-        renderHistoryUI(
-            history.map(item => ({
-                dateKey: item.tanggal,
-                rawDate: `${item.hari}, ${new Date(item.tanggal).toLocaleDateString('id-ID', {
-                    day: 'numeric', month: 'long', year: 'numeric'
-                })}`,
-                inTime: item.jam_masuk || '--:--:--',
-                outTime: item.jam_keluar || '--:--:--',
-                type: item.status || 'KDK'
-            }))
-        );
-        updateWeeklyStatusBubbles(history);
-
-        updateDashboardButtonUI();
-    }
+    await refreshHistoryFromAPI();
 }
 
 async function initHistoryPage() {
-    if (!activeUser || !activeUser.token) return;
-    const apiResult = await PresensiAPI.getHistory(activeUser.token);
-    const apiHistory = apiResult?.data?.history ?? apiResult?.data?.data ?? [];
-
-    const history = apiHistory.map(item => ({
-        dateKey: item.tanggal,
-        rawDate: `${item.hari}, ${new Date(item.tanggal).toLocaleDateString('id-ID', {
-            day: 'numeric', month: 'long', year: 'numeric'
-        })}`,
-        inTime: item.jam_masuk || '--:--:--',
-        outTime: item.jam_keluar || '--:--:--',
-        type: item.status || 'KDK'
-    }));
-
-    renderHistoryUI(history);
+    await refreshHistoryFromAPI();
 }
 
 function initCalendarPage() {
@@ -318,6 +371,46 @@ function initCalendarPage() {
 }
 
 function initProfilePage() {
+}
+
+function updateTodayScheduleUI(schedule) {
+    if (!schedule) return;
+    const targetInEl = document.getElementById('targetInDisplay');
+    const targetOutEl = document.getElementById('targetOutDisplay');
+    const officeEl = document.getElementById('officePlotingDisplay');
+    const badgeEl = document.getElementById('scheduleSourceBadge');
+
+    let inTime = schedule.formatted_in_target || schedule.clock_in_target;
+    let outTime = schedule.formatted_out_target || schedule.clock_out_target;
+
+    if (!inTime || inTime === '00:00' || inTime === '00:00:00' || inTime === '-') {
+        inTime = '07:30';
+    } else if (inTime.length > 5) {
+        inTime = inTime.substring(0, 5);
+    }
+
+    if (!outTime || outTime === '00:00' || outTime === '00:00:00' || outTime === '-') {
+        outTime = '16:00';
+    } else if (outTime.length > 5) {
+        outTime = outTime.substring(0, 5);
+    }
+
+    if (targetInEl) {
+        targetInEl.innerText = inTime;
+    }
+    if (targetOutEl) {
+        targetOutEl.innerText = outTime;
+    }
+    if (officeEl) {
+        officeEl.innerText = schedule.office_name || activeUser?.office || 'Kantor Utama';
+    }
+    if (badgeEl) {
+        if (schedule.has_schedule) {
+            badgeEl.innerHTML = `<i class="fas fa-check-circle me-1 text-success"></i>Ploting Admin`;
+        } else {
+            badgeEl.innerHTML = `<i class="fas fa-clock me-1 text-secondary"></i>Jam Reguler`;
+        }
+    }
 }
 
 // ==========================================
@@ -350,6 +443,112 @@ function updateUIUserData() {
     if (document.getElementById('profOffice')) document.getElementById('profOffice').innerText = activeUser.office || "-";
 }
 
+function showLoadingBar(message = "Mencatat presensi...") {
+    let overlay = document.getElementById('attendanceLoadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'attendanceLoadingOverlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    overlay.innerHTML = `
+        <div style="
+            background: #ffffff;
+            padding: 24px 28px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 320px;
+            width: 85%;
+        ">
+            <div style="position: relative; width: 64px; height: 64px; margin: 0 auto 16px auto;">
+                <div class="spinner-border text-primary" style="width: 64px; height: 64px; border-width: 4px;" role="status"></div>
+                <i class="fas fa-fingerprint text-primary position-absolute top-50 start-50 translate-middle" style="font-size: 1.5rem;"></i>
+            </div>
+            <h6 style="font-weight: 700; color: #0f172a; margin-bottom: 6px; font-size: 1rem;">${message}</h6>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 14px;">Mohon tunggu sebentar...</p>
+            <div class="progress" style="height: 6px; border-radius: 10px; background: #e2e8f0; overflow: hidden;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 100%;"></div>
+            </div>
+        </div>
+    `;
+    overlay.style.display = 'flex';
+}
+
+function hideLoadingBar() {
+    const overlay = document.getElementById('attendanceLoadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function showToastNotification(message, type = 'success', duration = 3500) {
+    let container = document.getElementById('toastNotificationContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastNotificationContainer';
+        container.style.cssText = `
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+            width: 90%;
+            max-width: 420px;
+        `;
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    const isSuccess = type === 'success';
+    const isError = type === 'error';
+    
+    const bgColor = isSuccess ? '#059669' : isError ? '#dc2626' : '#d97706';
+    const iconClass = isSuccess ? 'fa-check-circle' : isError ? 'fa-exclamation-triangle' : 'fa-info-circle';
+
+    toast.style.cssText = `
+        background: ${bgColor};
+        color: #ffffff;
+        padding: 14px 22px;
+        border-radius: 50px;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        pointer-events: auto;
+        animation: slideDownToast 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    `;
+
+    toast.innerHTML = `<i class="fas ${iconClass} fs-5"></i> <span>${message}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'slideUpToast 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+        setTimeout(() => toast.remove(), 350);
+    }, duration);
+}
+
 function processAttendance() {
     if (currentUserLat !== null && currentUserLon !== null) {
         executeAttendanceLogic();
@@ -361,17 +560,18 @@ function processAttendance() {
         return;
     }
 
-    showAppModal("Info", "Mengambil lokasi, mohon tunggu...", "warning");
+    showLoadingBar("Mengambil lokasi GPS...");
 
     navigator.geolocation.getCurrentPosition(
         (p) => {
             currentUserLat = p.coords.latitude;
             currentUserLon = p.coords.longitude;
-            closeAppModal();
+            hideLoadingBar();
             executeAttendanceLogic();
         },
         () => {
-            showAppModal("Gagal", "Gagal mendapatkan lokasi", "error");
+            hideLoadingBar();
+            showAppModal("Gagal", "Gagal mendapatkan lokasi. Aktifkan GPS Anda.", "error");
         },
         { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -383,10 +583,12 @@ function processAttendance() {
 function isUserSatpam() {
     if (!activeUser) return false;
 
-    const jabatan = (activeUser.status || "").toLowerCase();
+    if (activeUser.is_security === true) return true;
+
+    const jabatan = (activeUser.user_jabatan || activeUser.status || "").toLowerCase();
     const nama = (activeUser.fullname || "").toLowerCase();
 
-    const keywords = ["satpam", "security", "keamanan", "pengamanan", "guard"];
+    const keywords = ["satpam", "security", "keamanan", "pengamanan", "guard", "petugas keamanan"];
 
     return keywords.some(key => jabatan.includes(key) || nama.includes(key));
 }
@@ -496,8 +698,10 @@ async function executeAttendanceLogic() {
     }
     const todayRecord = existingIndex > -1 ? history[existingIndex] : null;
 
-    const isClockedIn = todayRecord && todayRecord.inTime !== '--:--:--';
-    const isClockedOut = todayRecord && todayRecord.outTime !== '--:--:--';
+    const isValidTime = (t) => Boolean(t && t !== '--:--:--' && t !== '-' && t !== '' && t !== 'null' && t !== 'undefined');
+
+    const isClockedIn = todayRecord && isValidTime(todayRecord.inTime);
+    const isClockedOut = todayRecord && isValidTime(todayRecord.outTime);
     const isSatpam = isUserSatpam();
 
     if (isSatpam && isClockedIn && !isClockedOut && hour < 16) {
@@ -507,84 +711,77 @@ async function executeAttendanceLogic() {
 
     try {
         if (existingIndex > -1 && isClockedIn && !isClockedOut) {
-            showAppModal("Info", "Mencatat presensi pulang...", "warning");
+            showLoadingBar("Mencatat presensi pulang...");
             if (window.PresensiAPI && activeUser?.token) {
                 await PresensiAPI.clockOut(activeUser.token, {
                     latitude: currentUserLat,
                     longitude: currentUserLon
                 });
             }
-            closeAppModal();
+            hideLoadingBar();
 
-            history[existingIndex].outTime = timeStr;
-            saveLocalHistory(history);
-
-            showAppModal("Berhasil", "Presensi pulang berhasil dicatat", "success");
-
-            renderHistoryUI(history);
-            updateDashboardButtonUI();
-            checkTodayStatus();
+            showToastNotification("✅ Presensi Pulang Berhasil Dicatat!", "success");
+            await refreshHistoryFromAPI();
             return;
         }
 
-        showAppModal("Info", "Mencatat presensi masuk...", "warning");
+        showLoadingBar("Mencatat presensi masuk...");
         if (window.PresensiAPI && activeUser?.token) {
             const result = await PresensiAPI.clockIn(activeUser.token, {
                 latitude: currentUserLat,
                 longitude: currentUserLon
             });
-            closeAppModal();
+            hideLoadingBar();
 
             if (result && result.httpStatus === 202) {
                 window.currentAttendanceId = result.data.attendance_id;
                 document.getElementById('kdmConfirmModal').classList.remove('d-none');
             } else if (result && result.httpStatus === 200) {
-                finishClockInUI('KDK');
+                await finishClockInUI('KDK');
             }
         } else {
-            closeAppModal();
-            showAppModal("Error", "PresensiAPI/Token tidak tersedia", "error");
+            hideLoadingBar();
+            showToastNotification("PresensiAPI / Token tidak tersedia", "error");
         }
 
     } catch (err) {
-        console.error("❌ History API error:", err);
+        hideLoadingBar();
+        const errMsg = typeof err === 'string' ? err : (err?.message || err?.error || "Terjadi kesalahan saat presensi.");
+        showToastNotification(errMsg, "error", 5000);
     }
 }
 
-function finishClockInUI(statusPresensi) {
-    const now = new Date();
-    const todayKey = formatDateKey(now);
-    const timeStr = formatTimeOnly(now);
-    const history = getLocalHistory();
-
-    history.push({
-        dateKey: todayKey,
-        rawDate: now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
-        inTime: timeStr,
-        outTime: '--:--:--',
-        type: statusPresensi // Diisi 'KDK' atau 'KDM'
-    });
-
-    saveLocalHistory(history);
-
-    showAppModal("Berhasil", `Presensi Masuk (<b>${statusPresensi}</b>) Berhasil Dicatat`, "success");
-
-    renderHistoryUI(history);
-    updateDashboardButtonUI();
-    checkTodayStatus();
+async function finishClockInUI(statusPresensi) {
+    showToastNotification(`✅ Presensi Masuk (${statusPresensi}) Berhasil Dicatat!`, "success");
+    await refreshHistoryFromAPI();
 }
 
 function renderHistoryUI(historyData) {
     if (!Array.isArray(historyData)) historyData = [];
 
-    historyData.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+    // Grouping per tanggal (dateKey) agar tidak membuat card/baris baru jika ada multiple entry di tanggal yang sama
+    const groupedMap = new Map();
+    historyData.forEach(item => {
+        if (!item.dateKey) return;
+        if (!groupedMap.has(item.dateKey)) {
+            groupedMap.set(item.dateKey, { ...item });
+        } else {
+            const existing = groupedMap.get(item.dateKey);
+            if (item.inTime && item.inTime !== '--:--:--') existing.inTime = item.inTime;
+            if (item.outTime && item.outTime !== '--:--:--') existing.outTime = item.outTime;
+            if (item.type) existing.type = item.type;
+        }
+    });
+
+    const consolidatedHistory = Array.from(groupedMap.values());
+    consolidatedHistory.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 
     const dashList = document.getElementById('dashboardHistoryList');
     if (dashList) {
         let kdk = 0, kdm = 0, html = '';
         const countedDates = new Set();
 
-        historyData.forEach((rec, idx) => {
+        consolidatedHistory.forEach((rec, idx) => {
             if (!countedDates.has(rec.dateKey)) {
                 countedDates.add(rec.dateKey);
                 if (rec.type === 'KDK') kdk++; else kdm++;
@@ -614,7 +811,7 @@ function renderHistoryUI(historyData) {
     const tableList = document.getElementById('fullHistoryList');
     if (tableList) {
         let fullHtml = '';
-        historyData.forEach(rec => {
+        consolidatedHistory.forEach(rec => {
             const dateParts = rec.rawDate.split(',');
             const dayName = dateParts[0];
             const fullDate = dateParts[1] || rec.rawDate;
@@ -759,39 +956,71 @@ function updateDateDisplay() {
     }
 }
 
-function getLocation() {
-    if (navigator.geolocation) {
-        const textEls = document.querySelectorAll('.locationTextShort');
+function getLocation(forceLoadingText = false) {
+    const textEls = document.querySelectorAll('.locationTextShort');
+    const cachedRaw = localStorage.getItem("user_location_cache");
 
-        textEls.forEach(el => {
-            el.innerText = "Mencari...";
-            el.style.color = '';
-        });
-
-        navigator.geolocation.getCurrentPosition(
-            (p) => {
-                currentUserLat = p.coords.latitude;
-                currentUserLon = p.coords.longitude;
-                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${currentUserLat}&longitude=${currentUserLon}&localityLanguage=id`)
-                    .then(res => res.json())
-                    .then(data => {
-                        const locName = (data.locality || '') + ", " + (data.city || '');
-                        textEls.forEach(el => {
-                            el.innerText = locName || "Tersambung";
-                            el.style.color = '';
-                        });
-                    })
-                    .catch(() => textEls.forEach(el => {
-                        el.innerText = "GPS OK";
-                        el.style.color = '';
-                    }));
-            },
-            () => textEls.forEach(el => {
-                el.innerText = "GPS Error";
-                el.style.color = 'red';
-            })
-        );
+    if (cachedRaw) {
+        try {
+            const cached = JSON.parse(cachedRaw);
+            if (cached.lat && cached.lng) {
+                currentUserLat = cached.lat;
+                currentUserLon = cached.lng;
+                const cachedName = cached.name || cached.teks_tampil || `${cached.lat.toFixed(5)}, ${cached.lng.toFixed(5)}`;
+                textEls.forEach(el => { el.innerText = cachedName; });
+            }
+        } catch (e) {}
+    } else if (forceLoadingText) {
+        textEls.forEach(el => { el.innerText = "Mencari..."; });
     }
+
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+        (p) => {
+            currentUserLat = p.coords.latitude;
+            currentUserLon = p.coords.longitude;
+
+            fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${currentUserLat}&longitude=${currentUserLon}&localityLanguage=id`)
+                .then(res => res.json())
+                .then(data => {
+                    const locality = (data.locality || '').trim();
+                    const city = (data.city || '').trim();
+                    let locName = locality;
+                    if (city && city !== locality) {
+                        locName = locName ? `${locName}, ${city}` : city;
+                    }
+                    const finalLocName = locName || `${currentUserLat.toFixed(5)}, ${currentUserLon.toFixed(5)}`;
+
+                    localStorage.setItem("user_location_cache", JSON.stringify({
+                        lat: currentUserLat,
+                        lng: currentUserLon,
+                        name: finalLocName,
+                        teks_tampil: finalLocName,
+                        timestamp: Date.now()
+                    }));
+
+                    textEls.forEach(el => { el.innerText = finalLocName; });
+                })
+                .catch(() => {
+                    const coordsStr = `${currentUserLat.toFixed(5)}, ${currentUserLon.toFixed(5)}`;
+                    localStorage.setItem("user_location_cache", JSON.stringify({
+                        lat: currentUserLat,
+                        lng: currentUserLon,
+                        name: coordsStr,
+                        teks_tampil: coordsStr,
+                        timestamp: Date.now()
+                    }));
+                    textEls.forEach(el => { el.innerText = coordsStr; });
+                });
+        },
+        () => {
+            if (!localStorage.getItem("user_location_cache")) {
+                textEls.forEach(el => { el.innerText = "Gagal melacak lokasi"; });
+            }
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
 }
 
 async function renderCalendar() {
@@ -813,6 +1042,18 @@ async function renderCalendar() {
         console.error("Gagal memuat CalendarAPI.");
     }
 
+    let schedulesMap = {};
+    let userSchedules = [];
+    if (window.PresensiAPI && activeUser?.token) {
+        const scheduleRes = await window.PresensiAPI.getSchedule(activeUser.token, month + 1, year);
+        if (scheduleRes && scheduleRes.status === 'success' && Array.isArray(scheduleRes.data?.schedules)) {
+            userSchedules = scheduleRes.data.schedules;
+            userSchedules.forEach(item => {
+                schedulesMap[item.schedule_date] = item;
+            });
+        }
+    }
+
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
@@ -828,6 +1069,7 @@ async function renderCalendar() {
         const dateKey = `${year}-${strMonth}-${strDay}`;
 
         const holiday = holidaysData[dateKey];
+        const schedule = schedulesMap[dateKey];
         const dateCheck = new Date(year, month, day);
         const isWeekend = dateCheck.getDay() === 0 || dateCheck.getDay() === 6;
 
@@ -838,23 +1080,38 @@ async function renderCalendar() {
         } else if (holiday) {
             holidaysInMonth.push({ date: day, name: holiday.name, type: holiday.type });
             classes += holiday.type === 'cuti' ? ' text-warning fw-bold' : ' text-danger fw-bold';
+        } else if (schedule) {
+            classes += ' border border-primary text-primary fw-bold';
         } else if (isWeekend) {
             classes += ' text-danger';
         }
 
         const hist = getLocalHistory();
         const hasAbsen = hist.find(h => h.dateKey === dateKey && h.outTime !== '--:--:--');
-        let dot = hasAbsen ? `<div style="height:4px;width:4px;background:#10b981;border-radius:50%"></div>` : '';
+        
+        let dots = '';
+        if (hasAbsen) {
+            dots += `<div style="height:4px;width:4px;background:#10b981;border-radius:50%"></div>`;
+        }
+        if (schedule) {
+            dots += `<div style="height:4px;width:4px;background:#0d6efd;border-radius:50%"></div>`;
+        }
 
         let onclick = '';
         if (holiday) {
             const safeName = holiday.name.replace(/'/g, "\\'");
             onclick = `onclick="showHolidayInfo('${safeName}', '${day} ${monthNames[month]}', '${holiday.type}')"`;
+        } else if (schedule) {
+            const safeOffice = schedule.office_name.replace(/'/g, "\\'");
+            const inT = schedule.formatted_in_target || '-';
+            const outT = schedule.formatted_out_target || '-';
+            onclick = `onclick="showScheduleInfo('${day} ${monthNames[month]} ${year}', '${safeOffice}', '${inT}', '${outT}')"`;
         }
 
-        html += `<div class="${classes}" ${onclick}>
-                    <div class="d-flex flex-column align-items-center justify-content-center w-100 h-100">
-                        ${day}${dot}
+        html += `<div class="${classes}" ${onclick} style="cursor: pointer;">
+                    <div class="d-flex flex-column align-items-center justify-content-center w-100 h-100 position-relative">
+                        <span>${day}</span>
+                        <div class="d-flex gap-1 align-items-center mt-1">${dots}</div>
                     </div>
                  </div>`;
     }
@@ -862,13 +1119,15 @@ async function renderCalendar() {
 
     const holList = document.getElementById('holidayList');
     if (holList) {
-        let hHtml = '';
+        let listHtml = '';
+
         if (holidaysInMonth.length > 0) {
+            listHtml += `<h6 class="fw-bold text-dark mb-2 mt-3" style="font-size: 0.9rem;"><i class="fas fa-calendar-times text-danger me-2"></i>Hari Libur Bulan Ini</h6>`;
             holidaysInMonth.forEach(h => {
                 const badgeClass = h.type === 'cuti' ? 'bg-warning text-dark' : 'bg-danger text-white';
                 const badgeText = h.type === 'cuti' ? 'Cuti Bersama' : 'Libur Nasional';
 
-                hHtml += `<div class="d-flex align-items-center gap-3 bg-white p-3 rounded-4 shadow-sm border-0 mb-2">
+                listHtml += `<div class="d-flex align-items-center gap-3 bg-white p-3 rounded-4 shadow-sm border-0 mb-2">
                             <div class="d-flex flex-column align-items-center justify-content-center bg-light rounded-3" style="width:45px;height:45px">
                                 <span class="fw-bold text-dark fs-5 mb-0" style="line-height:1">${h.date}</span>
                             </div>
@@ -879,9 +1138,10 @@ async function renderCalendar() {
                         </div>`;
             });
         } else {
-            hHtml = `<div class="text-center text-muted small py-3">Tidak ada hari libur bulan ini.</div>`;
+            listHtml = `<div class="text-center text-muted small py-3">Tidak ada hari libur bulan ini.</div>`;
         }
-        holList.innerHTML = hHtml;
+
+        holList.innerHTML = listHtml;
     }
 }
 
@@ -892,6 +1152,32 @@ async function renderCalendar() {
 window.changeMonth = (step) => {
     currentCalendarDate.setMonth(currentCalendarDate.getMonth() + step);
     renderCalendar();
+};
+
+window.showScheduleInfo = (dateStr, officeName, clockIn, clockOut) => {
+    showAppModal(
+        "Jadwal Ploting Absen",
+        `<div class="text-center">
+            <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-calendar-day me-1"></i>${dateStr}</h6>
+            <div class="p-3 bg-light rounded-4 text-start mb-2">
+                <div class="mb-2">
+                    <small class="text-muted d-block">Lokasi Penugasan / Kantor</small>
+                    <span class="fw-bold text-dark"><i class="fas fa-building text-primary me-1"></i>${officeName}</span>
+                </div>
+                <div class="row g-2 mt-2">
+                    <div class="col-6">
+                        <small class="text-muted d-block mb-1">Target Masuk</small>
+                        <span class="badge bg-success font-monospace px-3 py-2 w-100" style="font-size: 0.85rem;"><i class="fas fa-sign-in-alt me-1"></i>${clockIn}</span>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block mb-1">Target Pulang</small>
+                        <span class="badge bg-danger font-monospace px-3 py-2 w-100" style="font-size: 0.85rem;"><i class="fas fa-sign-out-alt me-1"></i>${clockOut}</span>
+                    </div>
+                </div>
+            </div>
+        </div>`,
+        "info"
+    );
 };
 
 window.showHolidayInfo = (name, date, type) => {
@@ -924,6 +1210,7 @@ window.confirmLogout = async () => {
         }
     }
     localStorage.removeItem(STORAGE_KEY_USER);
+    localStorage.removeItem(STORAGE_KEY_HISTORY);
     window.location.href = 'login.html';
 };
 

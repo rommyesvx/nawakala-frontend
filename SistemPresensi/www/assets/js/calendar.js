@@ -1,10 +1,7 @@
-/**
- * assets/js/kalender.js
- * (Pastikan nama file ini kalender.js)
- */
+
 
 const CalendarAPI = {
-    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api",
+    baseUrl: window.API_BASE_URL,
 
     _cache: {},
 
@@ -19,7 +16,12 @@ const CalendarAPI = {
             const strMonth = String(month).padStart(2, '0');
             console.log(`[CalendarAPI] Fetching: ${this.baseUrl}/calendar.php?month=${strMonth}&year=${year}`);
 
-            const response = await fetch(`${this.baseUrl}/calendar.php?month=${strMonth}&year=${year}`);
+            const response = await fetch(`${this.baseUrl}/calendar.php?month=${strMonth}&year=${year}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
 
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 

@@ -2,7 +2,7 @@
  * PRESENSI API
  */
 const PresensiAPI = {
-    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api/v2",
+    baseUrl: window.API_BASE_URL,
 
     async clockIn(token, payload) {
         try {
@@ -91,6 +91,52 @@ const PresensiAPI = {
             return data;
         } catch (err) {
             console.error("❌ History API error:", err);
+            return null;
+        }
+    },
+
+    async getTodayStatus(token) {
+        try {
+            const res = await fetch(`${this.baseUrl}/today.php`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Accept": "application/json"
+                }
+            });
+
+            const data = await res.json();
+            console.log("TODAY API:", data);
+
+            if (!res.ok) throw data;
+            return data;
+        } catch (err) {
+            console.error("❌ Today API error:", err);
+            return null;
+        }
+    },
+
+    async getSchedule(token, month = null, year = null) {
+        try {
+            let url = `${this.baseUrl}/schedule.php`;
+            const params = [];
+            if (month) params.push(`month=${month}`);
+            if (year) params.push(`year=${year}`);
+            if (params.length > 0) url += `?${params.join('&')}`;
+
+            const res = await fetch(url, {
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Accept": "application/json"
+                }
+            });
+
+            const data = await res.json();
+            console.log("SCHEDULE API:", data);
+
+            if (!res.ok) throw data;
+            return data;
+        } catch (err) {
+            console.error("❌ Schedule API error:", err);
             return null;
         }
     }

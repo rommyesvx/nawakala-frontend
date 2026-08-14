@@ -4,11 +4,11 @@
  */
 
 const PatrolAPI = {
-    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api",
+    baseUrl: window.API_BASE_URL,
 
     /**
      * Mengirim Laporan Patroli
-     * @param {string} token - Token user dari localStorage
+     * @param {string} token - Token user dari sessionStorage
      * @param {object} data - Payload { latitude, longitude, note, image }
      */
     submitReport: async function (token, data) {
@@ -29,6 +29,11 @@ const PatrolAPI = {
                     image: data.image // Base64 string
                 })
             });
+
+            if (response.status === 401) {
+                if (typeof window.handleUnauthorized === 'function') window.handleUnauthorized();
+                throw new Error("Unauthorized");
+            }
 
             if (!response.ok) {
                 console.error("Server Error:", response.status);

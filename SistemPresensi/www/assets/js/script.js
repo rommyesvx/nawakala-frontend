@@ -5,7 +5,7 @@
 const STORAGE_KEY_USER = 'presensi_local_user';
 const STORAGE_KEY_HISTORY = 'presensi_local_history';
 
-let currentCalendarDate = new Date(); 
+let currentCalendarDate = new Date();
 let currentUserLat = null, currentUserLon = null;
 let activeUser = null;
 let currentNotifMessage = "Tidak ada notifikasi baru.";
@@ -16,39 +16,35 @@ let currentNotifMessage = "Tidak ada notifikasi baru.";
 
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
-    const page = path.split("/").pop() || 'index.html'; 
+    const page = path.split("/").pop() || 'index.html';
     const savedUser = localStorage.getItem(STORAGE_KEY_USER);
 
-    // 1. Cek Sesi Login & Load Data Lokal
     if (savedUser) {
         activeUser = JSON.parse(savedUser);
-        updateUIUserData(); 
+        updateUIUserData();
 
-        // --- PERBAIKAN 1: Jalankan Update Tombol di AWAL (Global) ---
-        // Hapus "if (page === 'home.html')" agar jalan di semua halaman (Presensi, Kalender, Profil)
-        updateDashboardButtonUI(); 
+        updateDashboardButtonUI();
 
-        // --- SYNC PROFIL DARI API (Background) ---
         if (window.ProfileAPI && activeUser.token) {
             window.ProfileAPI.getProfile(activeUser.token).then(apiData => {
                 if (apiData) {
                     activeUser.fullname = apiData.user_name || activeUser.fullname;
-                    activeUser.user_id  = apiData.user_nip || apiData.user_id || activeUser.user_id;
-                    activeUser.address  = apiData.user_alamat || activeUser.address;
+                    activeUser.user_id = apiData.user_nip || apiData.user_id || activeUser.user_id;
+                    activeUser.address = apiData.user_alamat || activeUser.address;
                     activeUser.ttl = apiData.user_birthday ? apiData.user_birthday.split(' ')[0] : activeUser.ttl;
-                    activeUser.status   = apiData.user_type || activeUser.status; 
-                    activeUser.office   = apiData.office_name || activeUser.office;
-                    
+                    activeUser.status = apiData.user_type || activeUser.status;
+                    activeUser.user_jabatan = apiData.user_jabatan || activeUser.user_jabatan;
+                    activeUser.is_security = (typeof apiData.is_security !== 'undefined') ? apiData.is_security : (apiData.user_jabatan === 'Petugas Keamanan');
+                    activeUser.office = apiData.office_name || activeUser.office;
+
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(activeUser));
                     updateUIUserData();
 
-                    // --- PERBAIKAN 2: Jalankan Update Tombol setelah Sync (Global) ---
-                    // Hapus "if (page === 'home.html')" di sini juga
-                    updateDashboardButtonUI(); 
+                    updateDashboardButtonUI();
                 }
             });
         }
-        
+
         if (page === 'login.html') {
             window.location.href = 'home.html';
             return;
@@ -60,16 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 2. LOGIKA GLOBAL
-    if (page === 'home.html') getLocation(); 
+    getLocation(false);
 
-    // 3. Jalankan Logika Spesifik Halaman
     if (page === 'login.html') initLogin();
     else if (page === 'home.html') initHome();
     else if (page === 'presensi.html') initHistoryPage();
     else if (page === 'calendar.html') initCalendarPage();
     else if (page === 'profile.html') initProfilePage();
-    else if (page === 'patrol.html') initPatrolPage(); 
+    else if (page === 'patrol.html') initPatrolPage();
 });
 
 // ==========================================
@@ -87,60 +81,63 @@ function initLogin() {
         const btn = form.querySelector('button');
         const originalBtnText = btn.innerHTML;
 
-        if(!email || !pass) return showAppModal("Gagal", "Email dan Password wajib diisi", "error");
-        
-        // 1. UI Loading
+        if (!email || !pass) return showAppModal("Gagal", "Email dan Password wajib diisi", "error");
+
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Autentikasi...';
         btn.disabled = true;
 
         if (window.LoginAPI) {
             try {
-                // 2. LOGIN REQUEST
                 const result = await window.LoginAPI.login(email, pass);
 
                 if (result.status === 'success' && result.data) {
                     const tempUser = result.data.user;
                     const tempToken = result.data.token;
 
-                    // Update UI Loading Tahap 2
                     btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Memuat Profil...';
 
-                    // 3. PROFILE REQUEST (Fetch Role Jabatan sebelum masuk Home)
                     let finalUser = {
-                        username: tempUser.email,
+                        username: tempUser.user_id || tempUser.name || "User",
                         fullname: tempUser.name || "User",
                         token: tempToken,
-                        user_id: "-", ttl: "-", address: "-", status: "Pegawai", office: "-"
+                        user_id: tempUser.user_id || "-",
+                        ttl: "-",
+                        address: "-",
+                        status: tempUser.user_type || "Pegawai",
+                        user_jabatan: tempUser.user_jabatan || null,
+                        is_security: tempUser.is_security || false,
+                        office: "-"
                     };
 
-                    // Panggil Profile API
                     if (window.ProfileAPI) {
                         try {
                             const profileData = await window.ProfileAPI.getProfile(tempToken);
                             if (profileData) {
                                 finalUser.fullname = profileData.user_name || finalUser.fullname;
-                                finalUser.user_id  = profileData.user_nip || profileData.user_id || "-";
-                                finalUser.address  = profileData.user_alamat || "-";
+                                finalUser.user_id = profileData.user_nip || profileData.user_id || finalUser.user_id;
+                                finalUser.address = profileData.user_alamat || "-";
                                 finalUser.ttl = profileData.user_birthday ? profileData.user_birthday.split(' ')[0] : "-";
-                                finalUser.status   = profileData.user_type || "Pegawai";
-                                finalUser.office   = profileData.office_name || "-";
+                                finalUser.status = profileData.user_type || finalUser.status;
+                                finalUser.user_jabatan = profileData.user_jabatan || finalUser.user_jabatan;
+                                finalUser.is_security = (typeof profileData.is_security !== 'undefined') ? profileData.is_security : finalUser.is_security;
+                                finalUser.office = profileData.office_name || "-";
                             }
                         } catch (errProfile) {
                             console.warn("Skip profile fetch error:", errProfile);
                         }
                     }
 
-                    // 4. SIMPAN DATA & REDIRECT
+                    localStorage.removeItem(STORAGE_KEY_HISTORY);
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(finalUser));
-                    
+
                     document.getElementById('viewLogin').classList.add('d-none');
                     document.getElementById('viewLoading').classList.remove('d-none');
-                    
-                    let pct = 50; 
+
+                    let pct = 50;
                     const interval = setInterval(() => {
                         pct += 10;
                         const elPct = document.getElementById('loadingPercent');
-                        if(elPct) elPct.innerText = pct + "%";
+                        if (elPct) elPct.innerText = pct + "%";
                         if (pct >= 100) {
                             clearInterval(interval);
                             window.location.href = 'home.html';
@@ -173,12 +170,12 @@ function initPatrolPage() {
     const btnRetake = document.getElementById('btn-retake');
     const btnSend = document.getElementById('btn-send');
     const locationInfo = document.getElementById('location-info');
-    
+
     let patrolLat = null;
     let patrolLon = null;
     let imageBase64 = null;
 
-    if (!video) return; 
+    if (!video) return;
 
     // A. Kamera
     async function startCamera() {
@@ -219,11 +216,11 @@ function initPatrolPage() {
         canvas.height = video.videoHeight;
         const context = canvas.getContext('2d');
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        imageBase64 = canvas.toDataURL('image/jpeg', 0.7); 
-        
+        imageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
         video.classList.add('hidden');
         const shutter = document.getElementById('shutter-container');
-        if(shutter) shutter.classList.add('hidden');
+        if (shutter) shutter.classList.add('hidden');
         photoResult.src = imageBase64;
         photoResult.classList.remove('hidden');
         btnRetake.classList.remove('hidden');
@@ -235,7 +232,7 @@ function initPatrolPage() {
         photoResult.classList.add('hidden');
         video.classList.remove('hidden');
         const shutter = document.getElementById('shutter-container');
-        if(shutter) shutter.classList.remove('hidden');
+        if (shutter) shutter.classList.remove('hidden');
         btnRetake.classList.add('hidden');
         checkReady();
     });
@@ -281,52 +278,92 @@ function initPatrolPage() {
 
 // -----------------------------------------------------------
 
+async function refreshHistoryFromAPI() {
+    if (!activeUser?.token || !window.PresensiAPI) {
+        renderHistoryUI(getLocalHistory());
+        checkTodayStatus();
+        updateDashboardButtonUI();
+        return;
+    }
+
+    try {
+        const todayRes = await PresensiAPI.getTodayStatus(activeUser.token);
+        let todayApiData = null;
+        if (todayRes && todayRes.status === 'success' && todayRes.data) {
+            todayApiData = todayRes.data;
+            if (todayApiData.schedule) {
+                updateTodayScheduleUI(todayApiData.schedule);
+            }
+        }
+
+        const apiResult = await PresensiAPI.getHistory(activeUser.token);
+        const historyList = Array.isArray(apiResult?.data?.history) ? apiResult.data.history : [];
+
+        const mappedHistory = historyList.map(item => ({
+            dateKey: item.tanggal,
+            rawDate: `${item.hari}, ${new Date(item.tanggal).toLocaleDateString('id-ID', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            })}`,
+            inTime: (item.jam_masuk && item.jam_masuk !== '-') ? item.jam_masuk : '--:--:--',
+            outTime: (item.jam_keluar && item.jam_keluar !== '-') ? item.jam_keluar : '--:--:--',
+            type: item.status || 'KDK'
+        }));
+
+        if (todayApiData) {
+            const todayKey = formatDateKey(new Date());
+            let todayItem = mappedHistory.find(h => h.dateKey === todayKey);
+
+            if (todayApiData.status === 'not_clocked_in') {
+                if (todayItem) {
+                    const idx = mappedHistory.indexOf(todayItem);
+                    if (idx > -1) mappedHistory.splice(idx, 1);
+                }
+            } else {
+                const formatTime = (timeStr) => {
+                    if (!timeStr) return '--:--:--';
+                    const parts = timeStr.split(' ');
+                    return parts[1] || timeStr;
+                };
+
+                const inTime = formatTime(todayApiData.clock_in_time);
+                const outTime = formatTime(todayApiData.clock_out_time);
+
+                if (todayItem) {
+                    if (inTime !== '--:--:--') todayItem.inTime = inTime;
+                    if (outTime !== '--:--:--') todayItem.outTime = outTime;
+                } else {
+                    mappedHistory.push({
+                        dateKey: todayKey,
+                        rawDate: new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+                        inTime: inTime,
+                        outTime: outTime,
+                        type: 'KDK'
+                    });
+                }
+            }
+        }
+
+        saveLocalHistory(mappedHistory);
+        renderHistoryUI(mappedHistory);
+        updateWeeklyStatusBubbles(historyList);
+
+    } catch (err) {
+        console.warn("Skip refreshHistoryFromAPI error:", err);
+        renderHistoryUI(getLocalHistory());
+    }
+
+    checkTodayStatus();
+    updateDashboardButtonUI();
+}
+
 async function initHome() {
     updateDateDisplay();
     setInterval(() => { checkNotification(); }, 1000);
-    checkTodayStatus();
-    
-    // Inisialisasi Tampilan Tombol
-    updateDashboardButtonUI(); 
-
-    if (window.PresensiAPI && activeUser?.token) {
-        const apiResult = await PresensiAPI.getHistory(activeUser.token);
-        const history = Array.isArray(apiResult?.data?.history) ? apiResult.data.history : [];
-
-        renderHistoryUI(
-            history.map(item => ({
-                dateKey: item.tanggal,
-                rawDate: `${item.hari}, ${new Date(item.tanggal).toLocaleDateString('id-ID', {
-                    day: 'numeric', month: 'long', year: 'numeric'
-                })}`,
-                inTime: item.jam_masuk || '--:--:--',
-                outTime: item.jam_keluar || '--:--:--',
-                type: item.status || 'KDK'
-            }))
-        );
-        updateWeeklyStatusBubbles(history);
-        
-        // Update tombol setelah data server masuk
-        updateDashboardButtonUI(); 
-    }
+    await refreshHistoryFromAPI();
 }
 
 async function initHistoryPage() {
-    if (!activeUser || !activeUser.token) return;
-    const apiResult = await PresensiAPI.getHistory(activeUser.token);
-    const apiHistory = apiResult?.data?.history ?? apiResult?.data?.data ?? [];
-    
-    const history = apiHistory.map(item => ({
-        dateKey: item.tanggal,
-        rawDate: `${item.hari}, ${new Date(item.tanggal).toLocaleDateString('id-ID', {
-            day: 'numeric', month: 'long', year: 'numeric'
-        })}`,
-        inTime: item.jam_masuk || '--:--:--',
-        outTime: item.jam_keluar || '--:--:--',
-        type: item.status || 'KDK'
-    }));
-
-    renderHistoryUI(history);
+    await refreshHistoryFromAPI();
 }
 
 function initCalendarPage() {
@@ -334,7 +371,46 @@ function initCalendarPage() {
 }
 
 function initProfilePage() {
-    // Data dihandle global oleh updateUIUserData()
+}
+
+function updateTodayScheduleUI(schedule) {
+    if (!schedule) return;
+    const targetInEl = document.getElementById('targetInDisplay');
+    const targetOutEl = document.getElementById('targetOutDisplay');
+    const officeEl = document.getElementById('officePlotingDisplay');
+    const badgeEl = document.getElementById('scheduleSourceBadge');
+
+    let inTime = schedule.formatted_in_target || schedule.clock_in_target;
+    let outTime = schedule.formatted_out_target || schedule.clock_out_target;
+
+    if (!inTime || inTime === '00:00' || inTime === '00:00:00' || inTime === '-') {
+        inTime = '07:30';
+    } else if (inTime.length > 5) {
+        inTime = inTime.substring(0, 5);
+    }
+
+    if (!outTime || outTime === '00:00' || outTime === '00:00:00' || outTime === '-') {
+        outTime = '16:00';
+    } else if (outTime.length > 5) {
+        outTime = outTime.substring(0, 5);
+    }
+
+    if (targetInEl) {
+        targetInEl.innerText = inTime;
+    }
+    if (targetOutEl) {
+        targetOutEl.innerText = outTime;
+    }
+    if (officeEl) {
+        officeEl.innerText = schedule.office_name || activeUser?.office || 'Kantor Utama';
+    }
+    if (badgeEl) {
+        if (schedule.has_schedule) {
+            badgeEl.innerHTML = `<i class="fas fa-check-circle me-1 text-success"></i>Ploting Admin`;
+        } else {
+            badgeEl.innerHTML = `<i class="fas fa-clock me-1 text-secondary"></i>Jam Reguler`;
+        }
+    }
 }
 
 // ==========================================
@@ -343,28 +419,134 @@ function initProfilePage() {
 
 function updateUIUserData() {
     if (!activeUser) return;
-    
+
     document.querySelectorAll('.user-fullname-text').forEach(el => el.innerText = activeUser.fullname);
-    
+
     const nameParts = (activeUser.fullname || "").trim().split(/\s+/);
     let initials = '';
     for (let i = 0; i < Math.min(nameParts.length, 3); i++) {
-        if(nameParts[i]) initials += nameParts[i].charAt(0).toUpperCase();
+        if (nameParts[i]) initials += nameParts[i].charAt(0).toUpperCase();
     }
 
     document.querySelectorAll('.user-initials').forEach(el => el.innerText = initials);
-    
-    if(document.getElementById('profInitials')) {
+
+    if (document.getElementById('profInitials')) {
         document.getElementById('profInitials').innerText = initials;
-        if (initials.length === 3) document.getElementById('profInitials').style.fontSize = "2rem"; 
-        else document.getElementById('profInitials').style.fontSize = ""; 
+        if (initials.length === 3) document.getElementById('profInitials').style.fontSize = "2rem";
+        else document.getElementById('profInitials').style.fontSize = "";
     }
 
-    if(document.getElementById('profName')) document.getElementById('profName').innerText = activeUser.fullname;
-    if(document.getElementById('profuser_id')) document.getElementById('profuser_id').innerText = activeUser.user_id;
-    if(document.getElementById('profTTL')) document.getElementById('profTTL').innerText = activeUser.ttl;
-    if(document.getElementById('profAddress')) document.getElementById('profAddress').innerText = activeUser.address;
-    if(document.getElementById('profOffice')) document.getElementById('profOffice').innerText = activeUser.office || "-";
+    if (document.getElementById('profName')) document.getElementById('profName').innerText = activeUser.fullname;
+    if (document.getElementById('profuser_id')) document.getElementById('profuser_id').innerText = activeUser.user_id;
+    if (document.getElementById('profTTL')) document.getElementById('profTTL').innerText = activeUser.ttl;
+    if (document.getElementById('profAddress')) document.getElementById('profAddress').innerText = activeUser.address;
+    if (document.getElementById('profOffice')) document.getElementById('profOffice').innerText = activeUser.office || "-";
+}
+
+function showLoadingBar(message = "Mencatat presensi...") {
+    let overlay = document.getElementById('attendanceLoadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'attendanceLoadingOverlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    overlay.innerHTML = `
+        <div style="
+            background: #ffffff;
+            padding: 24px 28px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 320px;
+            width: 85%;
+        ">
+            <div style="position: relative; width: 64px; height: 64px; margin: 0 auto 16px auto;">
+                <div class="spinner-border text-primary" style="width: 64px; height: 64px; border-width: 4px;" role="status"></div>
+                <i class="fas fa-fingerprint text-primary position-absolute top-50 start-50 translate-middle" style="font-size: 1.5rem;"></i>
+            </div>
+            <h6 style="font-weight: 700; color: #0f172a; margin-bottom: 6px; font-size: 1rem;">${message}</h6>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 14px;">Mohon tunggu sebentar...</p>
+            <div class="progress" style="height: 6px; border-radius: 10px; background: #e2e8f0; overflow: hidden;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 100%;"></div>
+            </div>
+        </div>
+    `;
+    overlay.style.display = 'flex';
+}
+
+function hideLoadingBar() {
+    const overlay = document.getElementById('attendanceLoadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function showToastNotification(message, type = 'success', duration = 3500) {
+    let container = document.getElementById('toastNotificationContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastNotificationContainer';
+        container.style.cssText = `
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+            width: 90%;
+            max-width: 420px;
+        `;
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    const isSuccess = type === 'success';
+    const isError = type === 'error';
+    
+    const bgColor = isSuccess ? '#059669' : isError ? '#dc2626' : '#d97706';
+    const iconClass = isSuccess ? 'fa-check-circle' : isError ? 'fa-exclamation-triangle' : 'fa-info-circle';
+
+    toast.style.cssText = `
+        background: ${bgColor};
+        color: #ffffff;
+        padding: 14px 22px;
+        border-radius: 50px;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        pointer-events: auto;
+        animation: slideDownToast 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    `;
+
+    toast.innerHTML = `<i class="fas ${iconClass} fs-5"></i> <span>${message}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'slideUpToast 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+        setTimeout(() => toast.remove(), 350);
+    }, duration);
 }
 
 function processAttendance() {
@@ -378,17 +560,18 @@ function processAttendance() {
         return;
     }
 
-    showAppModal("Info", "Mengambil lokasi, mohon tunggu...", "warning");
+    showLoadingBar("Mengambil lokasi GPS...");
 
     navigator.geolocation.getCurrentPosition(
         (p) => {
             currentUserLat = p.coords.latitude;
             currentUserLon = p.coords.longitude;
-            closeAppModal(); 
-            executeAttendanceLogic(); 
+            hideLoadingBar();
+            executeAttendanceLogic();
         },
         () => {
-            showAppModal("Gagal", "Gagal mendapatkan lokasi", "error");
+            hideLoadingBar();
+            showAppModal("Gagal", "Gagal mendapatkan lokasi. Aktifkan GPS Anda.", "error");
         },
         { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -396,87 +579,107 @@ function processAttendance() {
 
 // --- FUNGSI HELPER: CEK ROLE & UPDATE TAMPILAN ---
 
-// Cari function isUserSatpam() yang lama, dan GANTI dengan yang ini:
 
 function isUserSatpam() {
     if (!activeUser) return false;
 
-    // 1. Ambil data Jabatan & Nama, jadikan huruf kecil semua (lowercase)
-    const jabatan = (activeUser.status || "").toLowerCase(); 
-    const nama = (activeUser.fullname || "").toLowerCase(); 
+    if (activeUser.is_security === true) return true;
 
-    // 2. Daftar kata kunci
-    const keywords = ["satpam", "security", "keamanan", "pengamanan", "guard"];
+    const jabatan = (activeUser.user_jabatan || activeUser.status || "").toLowerCase();
+    const nama = (activeUser.fullname || "").toLowerCase();
 
-    // 3. Logika: TRUE jika (Jabatan ada keyword) ATAU (Nama ada keyword)
+    const keywords = ["satpam", "security", "keamanan", "pengamanan", "guard", "petugas keamanan"];
+
     return keywords.some(key => jabatan.includes(key) || nama.includes(key));
 }
 
 function updateDashboardButtonUI() {
-    // Gunakan querySelector agar kompatibel dengan home.html tanpa ID
-    const btnDesktop = document.querySelector('.nav-container button.btn-gradient') || document.querySelector('.nav-container button.btn-warning'); 
-    const fabMobile = document.querySelector('.fab-btn'); 
+    const btnDesktop = document.querySelector('.nav-container button.btn-gradient') || document.querySelector('.nav-container button.btn-warning');
+    const fabMobile = document.querySelector('.fab-btn');
 
     if (!btnDesktop && !fabMobile) return;
 
     const isSatpam = isUserSatpam();
     const history = getLocalHistory();
     const todayKey = formatDateKey(new Date());
-    const todayRecord = history.find(item => item.dateKey === todayKey);
+
+    let todayRecord = null;
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].dateKey === todayKey) {
+            todayRecord = history[i];
+            break;
+        }
+    }
+
     const isClockedIn = todayRecord && todayRecord.inTime !== '--:--:--';
     const isClockedOut = todayRecord && todayRecord.outTime !== '--:--:--';
     const hour = new Date().getHours();
 
-    let mode = 'absen'; 
+    let mode = 'absen';
 
-    // LOGIKA TAMPILAN PATROLI (Fase 2)
-    // Syarat: Satpam + Sudah Masuk + Belum Pulang + Jam < 16
     if (isSatpam && isClockedIn && !isClockedOut && hour < 16) {
         mode = 'patroli';
     }
 
     if (mode === 'patroli') {
-        // --- MODE PATROLI ---
-        // 1. Desktop UI
         if (btnDesktop) {
             btnDesktop.className = "btn btn-warning rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2";
             btnDesktop.innerHTML = `<i class="fas fa-user-shield"></i> <span>Lapor Patroli</span>`;
-            btnDesktop.style.background = "#fbbf24"; 
+            btnDesktop.style.background = "#fbbf24";
             btnDesktop.style.border = "none";
-            btnDesktop.style.color = "#78350f"; 
+            btnDesktop.style.color = "#78350f";
         }
-        // 2. Mobile UI
         if (fabMobile) {
-            fabMobile.style.borderColor = "#fbbf24"; 
+            fabMobile.style.borderColor = "#fbbf24";
             fabMobile.style.color = "#d97706";
-            fabMobile.innerHTML = `<i class="fas fa-user-shield"></i>`; 
+            fabMobile.innerHTML = `<i class="fas fa-user-shield"></i>`;
         }
     } else {
-        // --- MODE ABSEN STANDARD ---
-        // 1. Desktop UI
         if (btnDesktop) {
             btnDesktop.className = "btn btn-primary rounded-pill px-4 fw-bold shadow-sm btn-gradient d-flex align-items-center gap-2";
             btnDesktop.innerHTML = `<i class="fas fa-fingerprint"></i> <span>Absen Sekarang</span>`;
-            btnDesktop.style.background = ""; 
+            btnDesktop.style.background = "";
             btnDesktop.style.color = "";
             btnDesktop.style.border = "";
         }
-        // 2. Mobile UI
         if (fabMobile) {
-            fabMobile.style.borderColor = "#38bdf8"; 
+            fabMobile.style.borderColor = "#38bdf8";
             fabMobile.style.color = "#0ea5e9";
             fabMobile.innerHTML = `<i class="fas fa-fingerprint"></i>`;
         }
     }
 }
 
-// --- UPDATE LOGIKA UTAMA TOMBOL (STANDARD LOGIC RESTORED) ---
 
-// --- UPDATE LOGIKA UTAMA TOMBOL (STANDARD LOGIC RESTORED) ---
+// ==========================================
+// KONTROL MODAL KDM
+// ==========================================
+window.closeKdmModal = () => document.getElementById('kdmConfirmModal').classList.add('d-none');
+
+window.confirmKdmAttendance = async () => {
+    closeKdmModal();
+
+    if (window.currentAttendanceId && window.PresensiAPI && activeUser?.token) {
+        try {
+            showAppModal("Info", "Mengonfirmasi kehadiran KDM...", "warning");
+            await PresensiAPI.confirmKdm(activeUser.token, {
+                attendance_id: window.currentAttendanceId,
+                confirmation_status: true
+            });
+            closeAppModal();
+            finishClockInUI('KDM');
+        } catch (err) {
+            closeAppModal();
+            showAppModal("Gagal", "Gagal mengonfirmasi KDM: " + (err.message || err.status || "Terjadi kesalahan"), "error");
+        }
+    } else {
+        showAppModal("Error", "ID Kehadiran tidak valid.", "error");
+    }
+};
 
 async function executeAttendanceLogic() {
     if (currentUserLat == null || currentUserLon == null) {
-        processAttendance(); 
+        processAttendance();
         return;
     }
 
@@ -486,127 +689,108 @@ async function executeAttendanceLogic() {
     const timeStr = formatTimeOnly(now);
 
     const history = getLocalHistory();
-    const existingIndex = history.findIndex(item => item.dateKey === todayKey);
+    let existingIndex = -1;
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].dateKey === todayKey) {
+            existingIndex = i;
+            break;
+        }
+    }
     const todayRecord = existingIndex > -1 ? history[existingIndex] : null;
 
-    const isClockedIn = todayRecord && todayRecord.inTime !== '--:--:--';
-    const isClockedOut = todayRecord && todayRecord.outTime !== '--:--:--';
+    const isValidTime = (t) => Boolean(t && t !== '--:--:--' && t !== '-' && t !== '' && t !== 'null' && t !== 'undefined');
+
+    const isClockedIn = todayRecord && isValidTime(todayRecord.inTime);
+    const isClockedOut = todayRecord && isValidTime(todayRecord.outTime);
     const isSatpam = isUserSatpam();
 
-    // === 1. LOGIKA SATPAM: FASE 2 (PATROLI) ===
     if (isSatpam && isClockedIn && !isClockedOut && hour < 16) {
         window.location.href = "patrol.html";
-        return; 
-    }
-
-    // === 2. LOGIKA STANDARD (User Biasa / Satpam Fase 1 & 3) ===
-    
-    // A. Cek Jam Kerja Global
-    if (hour < 5 || hour >= 23) {
-        showAppModal(
-            "Di Luar Jam Kerja",
-            "Sistem presensi ditutup.<br>Jam operasional: <b>05:00 - 23:00</b>",
-            "warning"
-        );
         return;
     }
 
     try {
-        // B. LOGIKA CLOCK OUT (PULANG)
-        if (existingIndex > -1 && history[existingIndex].inTime !== '--:--:--') {
-            if (history[existingIndex].outTime !== '--:--:--') {
-                showAppModal("Info", "Anda sudah menyelesaikan presensi hari ini.", "info");
-                return;
-            }
-            if (hour >= 23) {
-                showAppModal("Presensi Ditutup", "Presensi pulang ditutup pukul <b>23:00</b>", "warning");
-                return;
-            }
-
-            // PROSES CLOCK OUT
-            history[existingIndex].outTime = timeStr;
-            saveLocalHistory(history);
-    
+        if (existingIndex > -1 && isClockedIn && !isClockedOut) {
+            showLoadingBar("Mencatat presensi pulang...");
             if (window.PresensiAPI && activeUser?.token) {
-                await PresensiAPI.submit(activeUser.token, {
-                    date: todayKey,
-                    clock_out_time: timeStr,
-                    clock_out_lat: currentUserLat,
-                    clock_out_lng: currentUserLon
+                await PresensiAPI.clockOut(activeUser.token, {
+                    latitude: currentUserLat,
+                    longitude: currentUserLon
                 });
             }
-            showAppModal("Berhasil", "Presensi pulang berhasil dicatat", "success");
-            
-            renderHistoryUI(history);
-            updateDashboardButtonUI(); // Refresh tombol
-            
-            // ---> TAMBAHKAN BARIS INI UNTUK UPDATE UI JAM KELUAR SECARA REAL-TIME <---
-            checkTodayStatus(); 
+            hideLoadingBar();
 
+            showToastNotification("✅ Presensi Pulang Berhasil Dicatat!", "success");
+            await refreshHistoryFromAPI();
             return;
         }
 
-        // C. LOGIKA CLOCK IN (MASUK)
-        if (hour < 5) {
-            showAppModal(
-                "Belum Waktunya",
-                `Presensi masuk dibuka pukul <b>05:00</b><br>Sekarang pukul <b>${timeStr}</b>`,
-                "warning"
-            );
-            return;
-        }
-        if (existingIndex > -1) {
-            showAppModal("Info", "Anda sudah melakukan presensi masuk hari ini.", "info");
-            return;
-        }
-
-        // PROSES CLOCK IN
-        history.push({
-            dateKey: todayKey,
-            rawDate: now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
-            inTime: timeStr,
-            outTime: '--:--:--',
-            type: 'KDK'
-        });
-
-        saveLocalHistory(history);
-
+        showLoadingBar("Mencatat presensi masuk...");
         if (window.PresensiAPI && activeUser?.token) {
-            await PresensiAPI.submit(activeUser.token, {
-                date: todayKey,
-                clock_in_time: timeStr,
+            const result = await PresensiAPI.clockIn(activeUser.token, {
                 latitude: currentUserLat,
                 longitude: currentUserLon
             });
+            hideLoadingBar();
+
+            if (result && result.httpStatus === 202) {
+                window.currentAttendanceId = result.data.attendance_id;
+                document.getElementById('kdmConfirmModal').classList.remove('d-none');
+            } else if (result && result.httpStatus === 200) {
+                await finishClockInUI('KDK');
+            }
+        } else {
+            hideLoadingBar();
+            showToastNotification("PresensiAPI / Token tidak tersedia", "error");
         }
 
-        showAppModal("Berhasil", "Presensi Masuk Berhasil Dicatat", "success");
-        
-        renderHistoryUI(history);
-        updateDashboardButtonUI(); // Refresh tombol
-
-        // ---> TAMBAHKAN BARIS INI UNTUK UPDATE UI JAM MASUK SECARA REAL-TIME <---
-        checkTodayStatus(); 
-
     } catch (err) {
-        console.error("❌ History API error:", err);
+        hideLoadingBar();
+        const errMsg = typeof err === 'string' ? err : (err?.message || err?.error || "Terjadi kesalahan saat presensi.");
+        showToastNotification(errMsg, "error", 5000);
     }
+}
+
+async function finishClockInUI(statusPresensi) {
+    showToastNotification(`✅ Presensi Masuk (${statusPresensi}) Berhasil Dicatat!`, "success");
+    await refreshHistoryFromAPI();
 }
 
 function renderHistoryUI(historyData) {
     if (!Array.isArray(historyData)) historyData = [];
 
-    historyData.sort((a,b) => b.dateKey.localeCompare(a.dateKey));
+    // Grouping per tanggal (dateKey) agar tidak membuat card/baris baru jika ada multiple entry di tanggal yang sama
+    const groupedMap = new Map();
+    historyData.forEach(item => {
+        if (!item.dateKey) return;
+        if (!groupedMap.has(item.dateKey)) {
+            groupedMap.set(item.dateKey, { ...item });
+        } else {
+            const existing = groupedMap.get(item.dateKey);
+            if (item.inTime && item.inTime !== '--:--:--') existing.inTime = item.inTime;
+            if (item.outTime && item.outTime !== '--:--:--') existing.outTime = item.outTime;
+            if (item.type) existing.type = item.type;
+        }
+    });
+
+    const consolidatedHistory = Array.from(groupedMap.values());
+    consolidatedHistory.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 
     const dashList = document.getElementById('dashboardHistoryList');
     if (dashList) {
         let kdk = 0, kdm = 0, html = '';
-        historyData.forEach((rec, idx) => {
-            if(rec.type === 'KDK') kdk++; else kdm++;
-            const badgeColor = '#f59e0b'; 
+        const countedDates = new Set();
+
+        consolidatedHistory.forEach((rec, idx) => {
+            if (!countedDates.has(rec.dateKey)) {
+                countedDates.add(rec.dateKey);
+                if (rec.type === 'KDK') kdk++; else kdm++;
+            }
+
+            const badgeColor = '#f59e0b';
 
             if (idx < 3) {
-                 html += `
+                html += `
                  <div class="hist-item-gradient mb-2">
                     <div>
                         <div class="fw-bold small">${rec.rawDate}</div>
@@ -620,20 +804,20 @@ function renderHistoryUI(historyData) {
             }
         });
         dashList.innerHTML = html || '<div class="text-center text-muted small py-3">Belum ada riwayat.</div>';
-        if(document.getElementById('countKDK')) document.getElementById('countKDK').innerText = kdk;
-        if(document.getElementById('countKDM')) document.getElementById('countKDM').innerText = kdm;
+        if (document.getElementById('countKDK')) document.getElementById('countKDK').innerText = kdk;
+        if (document.getElementById('countKDM')) document.getElementById('countKDM').innerText = kdm;
     }
 
     const tableList = document.getElementById('fullHistoryList');
     if (tableList) {
         let fullHtml = '';
-        historyData.forEach(rec => {
-            const dateParts = rec.rawDate.split(','); 
+        consolidatedHistory.forEach(rec => {
+            const dateParts = rec.rawDate.split(',');
             const dayName = dateParts[0];
             const fullDate = dateParts[1] || rec.rawDate;
-            const badgeColor = '#f59e0b'; 
+            const badgeColor = '#f59e0b';
 
-             fullHtml += `
+            fullHtml += `
              <tr>
                 <td class="ps-4 py-3">
                     <div class="d-flex flex-column">
@@ -653,7 +837,13 @@ function renderHistoryUI(historyData) {
 function checkTodayStatus() {
     const todayKey = formatDateKey(new Date());
     const history = getLocalHistory();
-    const todayData = history.find(item => item.dateKey === todayKey);
+    let todayData = null;
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].dateKey === todayKey) {
+            todayData = history[i];
+            break;
+        }
+    }
 
     const elIn = document.getElementById('clockInDisplay');
     const elOut = document.getElementById('clockOutDisplay');
@@ -675,21 +865,21 @@ function updateWeeklyStatusBubbles(apiHistory = null) {
 
     const history = getLocalHistory();
     const now = new Date();
-    const currentDay = now.getDay(); 
+    const currentDay = now.getDay();
     const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
     const mondayDate = new Date(now);
     mondayDate.setDate(now.getDate() - distanceToMonday);
 
     let html = '';
-    const days = ['S', 'S', 'R', 'K', 'J']; 
+    const days = ['S', 'S', 'R', 'K', 'J'];
 
     for (let i = 0; i < 5; i++) {
         const checkDate = new Date(mondayDate);
         checkDate.setDate(mondayDate.getDate() + i);
         const dateKey = formatDateKey(checkDate);
-        
+
         const record = history.find(h => h.dateKey === dateKey && h.inTime !== '--:--:--');
-        
+
         if (record) {
             html += `<div class="bubble active"><i class="fas fa-check"></i></div>`;
         } else {
@@ -706,11 +896,11 @@ function updateWeeklyStatusBubbles(apiHistory = null) {
 function checkNotification() {
     const now = new Date();
     const hour = now.getHours();
-    
+
     const elIn = document.getElementById('clockInDisplay');
     const elOut = document.getElementById('clockOutDisplay');
-    
-    if (!elIn || !elOut) return; 
+
+    if (!elIn || !elOut) return;
 
     const isCheckedIn = elIn.innerText !== '--:--:--';
     const isCheckedOut = elOut.innerText !== '--:--:--';
@@ -757,64 +947,94 @@ function formatTimeOnly(dateObj) {
 
 function updateDateDisplay() {
     const d = new Date();
-    if(document.getElementById('dashDateNum')) {
+    if (document.getElementById('dashDateNum')) {
         const dNum = d.getDate();
-        let suffix = (dNum===1||dNum===21||dNum===31)?'st':(dNum===2||dNum===22)?'nd':(dNum===3||dNum===23)?'rd':'th';
+        let suffix = (dNum === 1 || dNum === 21 || dNum === 31) ? 'st' : (dNum === 2 || dNum === 22) ? 'nd' : (dNum === 3 || dNum === 23) ? 'rd' : 'th';
         document.getElementById('dashDateNum').innerHTML = `${dNum}<sup class="fs-4">${suffix}</sup>`;
         document.getElementById('dashDateDay').innerText = d.toLocaleDateString('id-ID', { weekday: 'long' });
         document.getElementById('dashDateMonth').innerText = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
     }
 }
 
-function getLocation() {
-    if (navigator.geolocation) {
-        const textEls = document.querySelectorAll('.locationTextShort');
-        
-        // 1. Reset warna ke default (menghapus inline style) saat mulai mencari
-        textEls.forEach(el => { 
-            el.innerText = "Mencari..."; 
-            el.style.color = ''; 
-        });
+function getLocation(forceLoadingText = false) {
+    const textEls = document.querySelectorAll('.locationTextShort');
+    const cachedRaw = localStorage.getItem("user_location_cache");
 
-        navigator.geolocation.getCurrentPosition(
-            (p) => {
-                currentUserLat = p.coords.latitude;
-                currentUserLon = p.coords.longitude;
-                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${currentUserLat}&longitude=${currentUserLon}&localityLanguage=id`)
-                    .then(res => res.json())
-                    .then(data => {
-                        const locName = (data.locality || '') + ", " + (data.city || '');
-                        textEls.forEach(el => {
-                            el.innerText = locName || "Tersambung";
-                            // 2. PERBAIKAN: Paksa reset warna lagi saat sukses untuk jaga-jaga
-                            el.style.color = ''; 
-                        });
-                    })
-                    .catch(() => textEls.forEach(el => { 
-                        el.innerText = "GPS OK"; 
-                        el.style.color = ''; // Reset warna juga saat fallback API
-                    }));
-            },
-            () => textEls.forEach(el => { 
-                el.innerText = "GPS Error"; 
-                el.style.color = 'red'; // Set merah hanya saat error
-            })
-        );
+    if (cachedRaw) {
+        try {
+            const cached = JSON.parse(cachedRaw);
+            if (cached.lat && cached.lng) {
+                currentUserLat = cached.lat;
+                currentUserLon = cached.lng;
+                const cachedName = cached.name || cached.teks_tampil || `${cached.lat.toFixed(5)}, ${cached.lng.toFixed(5)}`;
+                textEls.forEach(el => { el.innerText = cachedName; });
+            }
+        } catch (e) {}
+    } else if (forceLoadingText) {
+        textEls.forEach(el => { el.innerText = "Mencari..."; });
     }
+
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+        (p) => {
+            currentUserLat = p.coords.latitude;
+            currentUserLon = p.coords.longitude;
+
+            fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${currentUserLat}&longitude=${currentUserLon}&localityLanguage=id`)
+                .then(res => res.json())
+                .then(data => {
+                    const locality = (data.locality || '').trim();
+                    const city = (data.city || '').trim();
+                    let locName = locality;
+                    if (city && city !== locality) {
+                        locName = locName ? `${locName}, ${city}` : city;
+                    }
+                    const finalLocName = locName || `${currentUserLat.toFixed(5)}, ${currentUserLon.toFixed(5)}`;
+
+                    localStorage.setItem("user_location_cache", JSON.stringify({
+                        lat: currentUserLat,
+                        lng: currentUserLon,
+                        name: finalLocName,
+                        teks_tampil: finalLocName,
+                        timestamp: Date.now()
+                    }));
+
+                    textEls.forEach(el => { el.innerText = finalLocName; });
+                })
+                .catch(() => {
+                    const coordsStr = `${currentUserLat.toFixed(5)}, ${currentUserLon.toFixed(5)}`;
+                    localStorage.setItem("user_location_cache", JSON.stringify({
+                        lat: currentUserLat,
+                        lng: currentUserLon,
+                        name: coordsStr,
+                        teks_tampil: coordsStr,
+                        timestamp: Date.now()
+                    }));
+                    textEls.forEach(el => { el.innerText = coordsStr; });
+                });
+        },
+        () => {
+            if (!localStorage.getItem("user_location_cache")) {
+                textEls.forEach(el => { el.innerText = "Gagal melacak lokasi"; });
+            }
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
 }
 
 async function renderCalendar() {
     const elGrid = document.getElementById('calendarGrid');
-    if (!elGrid) return; 
+    if (!elGrid) return;
 
     elGrid.innerHTML = '<div class="col-12 text-center py-5 text-muted"><i class="fas fa-spinner fa-spin"></i> Memuat...</div>';
 
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
     const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-    
+
     document.getElementById('calendarTitle').innerText = `${monthNames[month]} ${year}`;
-    
+
     let holidaysData = {};
     if (window.CalendarAPI) {
         holidaysData = await window.CalendarAPI.getHolidays(month + 1, year);
@@ -822,8 +1042,20 @@ async function renderCalendar() {
         console.error("Gagal memuat CalendarAPI.");
     }
 
-    const firstDay = new Date(year, month, 1).getDay(); 
-    const daysInMonth = new Date(year, month + 1, 0).getDate(); 
+    let schedulesMap = {};
+    let userSchedules = [];
+    if (window.PresensiAPI && activeUser?.token) {
+        const scheduleRes = await window.PresensiAPI.getSchedule(activeUser.token, month + 1, year);
+        if (scheduleRes && scheduleRes.status === 'success' && Array.isArray(scheduleRes.data?.schedules)) {
+            userSchedules = scheduleRes.data.schedules;
+            userSchedules.forEach(item => {
+                schedulesMap[item.schedule_date] = item;
+            });
+        }
+    }
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
 
     let html = '';
@@ -835,49 +1067,67 @@ async function renderCalendar() {
         const strMonth = String(month + 1).padStart(2, '0');
         const strDay = String(day).padStart(2, '0');
         const dateKey = `${year}-${strMonth}-${strDay}`;
-        
+
         const holiday = holidaysData[dateKey];
+        const schedule = schedulesMap[dateKey];
         const dateCheck = new Date(year, month, day);
         const isWeekend = dateCheck.getDay() === 0 || dateCheck.getDay() === 6;
-        
+
         let classes = 'calendar-day';
-        
+
         if (today.getDate() === day && today.getMonth() === month && today.getFullYear() === year) {
             classes += ' today';
         } else if (holiday) {
             holidaysInMonth.push({ date: day, name: holiday.name, type: holiday.type });
             classes += holiday.type === 'cuti' ? ' text-warning fw-bold' : ' text-danger fw-bold';
+        } else if (schedule) {
+            classes += ' border border-primary text-primary fw-bold';
         } else if (isWeekend) {
-            classes += ' text-danger'; 
+            classes += ' text-danger';
         }
-        
+
         const hist = getLocalHistory();
         const hasAbsen = hist.find(h => h.dateKey === dateKey && h.outTime !== '--:--:--');
-        let dot = hasAbsen ? `<div style="height:4px;width:4px;background:#10b981;border-radius:50%"></div>` : '';
         
+        let dots = '';
+        if (hasAbsen) {
+            dots += `<div style="height:4px;width:4px;background:#10b981;border-radius:50%"></div>`;
+        }
+        if (schedule) {
+            dots += `<div style="height:4px;width:4px;background:#0d6efd;border-radius:50%"></div>`;
+        }
+
         let onclick = '';
         if (holiday) {
             const safeName = holiday.name.replace(/'/g, "\\'");
             onclick = `onclick="showHolidayInfo('${safeName}', '${day} ${monthNames[month]}', '${holiday.type}')"`;
+        } else if (schedule) {
+            const safeOffice = schedule.office_name.replace(/'/g, "\\'");
+            const inT = schedule.formatted_in_target || '-';
+            const outT = schedule.formatted_out_target || '-';
+            onclick = `onclick="showScheduleInfo('${day} ${monthNames[month]} ${year}', '${safeOffice}', '${inT}', '${outT}')"`;
         }
-        
-        html += `<div class="${classes}" ${onclick}>
-                    <div class="d-flex flex-column align-items-center justify-content-center w-100 h-100">
-                        ${day}${dot}
+
+        html += `<div class="${classes}" ${onclick} style="cursor: pointer;">
+                    <div class="d-flex flex-column align-items-center justify-content-center w-100 h-100 position-relative">
+                        <span>${day}</span>
+                        <div class="d-flex gap-1 align-items-center mt-1">${dots}</div>
                     </div>
                  </div>`;
     }
     elGrid.innerHTML = html;
-    
+
     const holList = document.getElementById('holidayList');
-    if(holList) {
-        let hHtml = '';
+    if (holList) {
+        let listHtml = '';
+
         if (holidaysInMonth.length > 0) {
+            listHtml += `<h6 class="fw-bold text-dark mb-2 mt-3" style="font-size: 0.9rem;"><i class="fas fa-calendar-times text-danger me-2"></i>Hari Libur Bulan Ini</h6>`;
             holidaysInMonth.forEach(h => {
                 const badgeClass = h.type === 'cuti' ? 'bg-warning text-dark' : 'bg-danger text-white';
                 const badgeText = h.type === 'cuti' ? 'Cuti Bersama' : 'Libur Nasional';
 
-                hHtml += `<div class="d-flex align-items-center gap-3 bg-white p-3 rounded-4 shadow-sm border-0 mb-2">
+                listHtml += `<div class="d-flex align-items-center gap-3 bg-white p-3 rounded-4 shadow-sm border-0 mb-2">
                             <div class="d-flex flex-column align-items-center justify-content-center bg-light rounded-3" style="width:45px;height:45px">
                                 <span class="fw-bold text-dark fs-5 mb-0" style="line-height:1">${h.date}</span>
                             </div>
@@ -888,9 +1138,10 @@ async function renderCalendar() {
                         </div>`;
             });
         } else {
-            hHtml = `<div class="text-center text-muted small py-3">Tidak ada hari libur bulan ini.</div>`;
+            listHtml = `<div class="text-center text-muted small py-3">Tidak ada hari libur bulan ini.</div>`;
         }
-        holList.innerHTML = hHtml;
+
+        holList.innerHTML = listHtml;
     }
 }
 
@@ -903,27 +1154,53 @@ window.changeMonth = (step) => {
     renderCalendar();
 };
 
+window.showScheduleInfo = (dateStr, officeName, clockIn, clockOut) => {
+    showAppModal(
+        "Jadwal Ploting Absen",
+        `<div class="text-center">
+            <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-calendar-day me-1"></i>${dateStr}</h6>
+            <div class="p-3 bg-light rounded-4 text-start mb-2">
+                <div class="mb-2">
+                    <small class="text-muted d-block">Lokasi Penugasan / Kantor</small>
+                    <span class="fw-bold text-dark"><i class="fas fa-building text-primary me-1"></i>${officeName}</span>
+                </div>
+                <div class="row g-2 mt-2">
+                    <div class="col-6">
+                        <small class="text-muted d-block mb-1">Target Masuk</small>
+                        <span class="badge bg-success font-monospace px-3 py-2 w-100" style="font-size: 0.85rem;"><i class="fas fa-sign-in-alt me-1"></i>${clockIn}</span>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block mb-1">Target Pulang</small>
+                        <span class="badge bg-danger font-monospace px-3 py-2 w-100" style="font-size: 0.85rem;"><i class="fas fa-sign-out-alt me-1"></i>${clockOut}</span>
+                    </div>
+                </div>
+            </div>
+        </div>`,
+        "info"
+    );
+};
+
 window.showHolidayInfo = (name, date, type) => {
     showAppModal(type === 'cuti' ? "Cuti Bersama" : "Libur Nasional", `<h6 class="fw-bold">${date}</h6><p class="mb-0 text-muted">${name}</p>`, type === 'cuti' ? 'warning' : 'error');
 };
 
-window.showAppModal = (t, m, type='success') => {
+window.showAppModal = (t, m, type = 'success') => {
     document.getElementById('modalTitle').innerText = t;
     document.getElementById('modalMessage').innerHTML = m;
     const icon = document.getElementById('modalIcon');
     const bg = document.getElementById('modalIconBg');
-    
+
     if (type === 'error') { icon.className = 'fas fa-times'; bg.style.background = '#fee2e2'; bg.style.color = '#ef4444'; }
     else if (type === 'warning') { icon.className = 'fas fa-exclamation-triangle'; bg.style.background = '#fef3c7'; bg.style.color = '#d97706'; }
     else { icon.className = 'fas fa-check'; bg.style.background = '#e0f2fe'; bg.style.color = '#0ea5e9'; }
-    
+
     document.getElementById('appModal').classList.remove('d-none');
 };
 
 window.closeAppModal = () => document.getElementById('appModal').classList.add('d-none');
 window.handleLogout = () => document.getElementById('logoutModal').classList.remove('d-none');
 window.closeLogoutModal = () => document.getElementById('logoutModal').classList.add('d-none');
-  
+
 window.confirmLogout = async () => {
     const savedUser = localStorage.getItem(STORAGE_KEY_USER);
     if (savedUser) {
@@ -933,6 +1210,7 @@ window.confirmLogout = async () => {
         }
     }
     localStorage.removeItem(STORAGE_KEY_USER);
+    localStorage.removeItem(STORAGE_KEY_HISTORY);
     window.location.href = 'login.html';
 };
 

@@ -1,10 +1,7 @@
-/**
- * assets/js/kalender.js
- * (Pastikan nama file ini kalender.js)
- */
+
 
 const CalendarAPI = {
-    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api/v2",
+    baseUrl: window.API_BASE_URL,
 
     _cache: {},
 

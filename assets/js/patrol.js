@@ -4,7 +4,7 @@
  */
 
 const PatrolAPI = {
-    baseUrl: "https://caraka-biroumumpbj.kemendikdasmen.go.id/api/v2",
+    baseUrl: window.API_BASE_URL,
 
     /**
      * Mengirim Laporan Patroli
