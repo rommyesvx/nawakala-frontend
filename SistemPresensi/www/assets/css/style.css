@@ -5,9 +5,7 @@
     --text-dark: #1e293b;
 }
 
-/* --- GLOBAL MOBILE OPTIMIZATION --- */
 * {
-    /* Menghilangkan highlight biru saat tap di Android/iOS */
     -webkit-tap-highlight-color: transparent; 
     box-sizing: border-box;
 }
@@ -19,45 +17,36 @@ body {
     background-attachment: fixed;
     color: var(--text-dark);
     margin: 0;
-    
-    /* Mencegah user memblok teks (Select) agar terasa seperti Apps Native */
     -webkit-user-select: none; 
     user-select: none;
-    
-    /* Mencegah scroll bouncing berlebih di iOS */
     overscroll-behavior-y: none; 
 }
 
-/* Izinkan select teks hanya di input form */
 input, textarea {
     -webkit-user-select: text !important;
     user-select: text !important;
 }
 
-/* --- VISIBILITY CONTROL --- */
 .desktop-view { display: none !important; }
 .mobile-view { display: flex !important; }
 
-/* Media Query Desktop */
 @media (min-width: 768px) {
     .desktop-view { display: flex !important; }
     
-    /* Sembunyikan elemen mobile di layar besar */
     .mobile-view, 
     .mobile-navbar, 
-    .fab-container { /* FAB disembunyikan di desktop karena sudah ada tombol di header */
+    .fab-container { 
         display: none !important; 
     }
     
     .main-content { padding-top: 100px !important; }
 }
 
-/* --- DATE DISPLAY (DASHBOARD) --- */
 .date-big-num {
-    font-size: 3.8rem !important; /* SEBELUMNYA 2.8rem */
+    font-size: 3.8rem !important; 
     line-height: 1;
     font-weight: 700;
-    letter-spacing: -2px; /* Sedikit dirapatkan agar angka besar tetap rapi */
+    letter-spacing: -2px; 
 }
 
 .date-text-group h3 { font-size: 1.1rem !important; }
@@ -65,12 +54,11 @@ input, textarea {
 
 @media (min-width: 768px) {
     .date-big-num { 
-        font-size: 6rem !important; /* SEBELUMNYA 4.5rem (Tampilan Desktop) */
+        font-size: 6rem !important; 
     } 
     .date-text-group h3 { font-size: 1.5rem !important; }
 }
 
-/* --- LOGIN --- */
 .login-container {
     position: fixed;
     top: 0; left: 0;
@@ -79,7 +67,7 @@ input, textarea {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999; /* Pastikan di atas navbar */
+    z-index: 9999;
     padding: 20px;
 }
 .login-card {
@@ -114,9 +102,8 @@ input, textarea {
 }
 .btn-gradient:active { transform: scale(0.98); }
 
-/* --- DESKTOP NAVBAR --- */
 .desktop-navbar {
-    position: fixed; top: 0; left: 0; width: 100%; height: 80px;
+    position: fixed; top: 0; left: 0; width: 100%; height: 90px;
     background: white; z-index: 1030;
     box-shadow: 0 2px 15px rgba(0,0,0,0.04);
     border-bottom: 1px solid #f1f5f9;
@@ -128,56 +115,55 @@ input, textarea {
 .nav-link-desk { text-decoration: none; color: #64748b; font-weight: 500; padding: 8px 16px; transition: 0.3s; }
 .nav-link-desk:hover, .nav-link-desk.active { color: var(--primary); }
 
-/* --- CSS UNTUK NAVBAR YANG LEBIH TEBAL --- */
-
-/* 1. Khusus untuk teks "E-Presensi" agar lebih tebal dari sebelumnya (dari 700 ke 800) */
 .brand-text-bold {
-    font-weight: 800 !important; /* Extra Bold */
+    font-weight: 800 !important;
 }
 
-/* 2. Ubah ketebalan dasar link menu (Home, Presensi, dll) dari 500 ke 600 */
+.navbar-logo {
+    height: 72px;
+    max-height: 75px;
+    width: auto;
+    max-width: 280px;
+    object-fit: contain;
+    display: block;
+}
+
 .nav-link-desk {
     text-decoration: none;
     color: #64748b;
-    font-weight: 600; /* Diubah menjadi Semi-Bold */
+    font-weight: 600;
     padding: 8px 16px;
     transition: 0.3s;
 }
 
-/* 3. Pisahkan style hover dan active, dan buat link yang aktif menjadi Bold (700) */
 .nav-link-desk:hover {
     color: var(--primary);
 }
 
 .nav-link-desk.active {
     color: var(--primary);
-    font-weight: 700 !important; /* Menjadi Bold saat aktif */
+    font-weight: 700 !important;
 }
 
-/* --- HOVER EFFECT FOR DESKTOP NAVBAR ICONS & BUTTONS --- */
-
-/* 1. Tombol Absen Sekarang */
 .nav-container button.btn-gradient {
-    transition: all 0.3s ease; /* Transisi halus */
+    transition: all 0.3s ease;
 }
 
 .nav-container button.btn-gradient:hover {
-    transform: translateY(-2px); /* Tombol naik sedikit */
-    box-shadow: 0 6px 15px rgba(14, 165, 233, 0.4) !important; /* Bayangan lebih tebal */
-    filter: brightness(1.1); /* Warna sedikit lebih terang */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(14, 165, 233, 0.4) !important;
+    filter: brightness(1.1);
 }
 
-/* 2. Ikon Lonceng Notifikasi */
 .nav-container .fa-bell {
     transition: all 0.3s ease;
 }
 
 .nav-container .fa-bell:hover {
-    color: var(--primary) !important; /* Berubah jadi biru saat dihover */
-    transform: scale(1.1) rotate(10deg); /* Membesar dan miring sedikit */
+    color: var(--primary) !important;
+    transform: scale(1.1) rotate(10deg);
 }
 
-/* 3. Avatar Hover (Opsional, agar seragam) */
 .nav-container .avatar-circle {
     transition: transform 0.3s ease;
     cursor: pointer;
@@ -187,10 +173,9 @@ input, textarea {
     transform: scale(1.1);
 }
 
-/* --- PROFILE DROPDOWN (DESKTOP) --- */
 .dropdown-menu-custom {
     position: absolute;
-    top: 120%; /* Sedikit di bawah avatar */
+    top: 120%;
     right: 0;
     width: 280px;
     background: white;
@@ -199,7 +184,6 @@ input, textarea {
     transform-origin: top right;
 }
 
-/* Panah kecil di atas dropdown (Opsional, pemanis) */
 .dropdown-menu-custom::before {
     content: '';
     position: absolute;
@@ -213,7 +197,6 @@ input, textarea {
     border-left: 1px solid #f1f5f9;
 }
 
-/* Hover Effects untuk item menu */
 .hover-bg-light:hover {
     background-color: #f8fafc;
     color: var(--primary) !important;
@@ -224,7 +207,6 @@ input, textarea {
     color: #dc2626 !important;
 }
 
-/* Animasi Muncul Cepat */
 .animate-fade-in-fast {
     animation: fadeInFast 0.2s ease-out forwards;
 }
@@ -234,7 +216,6 @@ input, textarea {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- MOBILE BOTTOM NAV --- */
 .mobile-navbar {
     display: block !important;
     position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; height: auto;
@@ -283,17 +264,15 @@ input, textarea {
 }
 .fab-btn:active { transform: scale(0.95); }
 
-/* --- PROFILE --- */
 .profile-avatar-lg {
     width: 120px; height: 120px; background: #0088CC;
     border-radius: 50%; font-size: 2.5rem; border: 4px solid #e0f2fe;
 }
 
-/* --- LOADING --- */
 .loading-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
     background: linear-gradient(180deg, #d0f0fd 0%, #ffffff 50%, #d0f0fd 100%);
-    z-index: 99999; /* Tertinggi */
+    z-index: 99999;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     color: var(--text-dark); transition: opacity 0.5s ease-out;
@@ -314,15 +293,14 @@ input, textarea {
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-/* --- CALENDAR --- */
 #viewCalendar .card { border-radius: 24px !important; border: none; }
 #viewCalendar .card-header { background: transparent; border-bottom: 1px solid #f1f5f9; padding: 20px; }
 
 .calendar-day {
     width: 100%; 
-    aspect-ratio: 1 / 1; /* Ini trik agar kotak tetap presisi */
+    aspect-ratio: 1 / 1;
     height: auto;
-    max-width: 40px; /* Batas maksimal agar tidak raksasa di desktop */
+    max-width: 40px;
     display: flex; align-items: center; justify-content: center;
     border-radius: 50%; font-size: 0.9rem; font-weight: 500;
     cursor: pointer; margin: 0 auto; transition: all 0.2s ease; 
@@ -333,7 +311,6 @@ input, textarea {
 .calendar-day.holiday { color: #ef4444; }
 .calendar-day.faded { color: #cbd5e1; pointer-events: none; }
 
-/* --- STYLE DAFTAR LIBUR --- */
 #holidayList .d-flex {
     border-radius: 16px !important; margin-bottom: 10px;
     border: 1px solid #f1f5f9; transition: transform 0.2s;
@@ -341,7 +318,6 @@ input, textarea {
 #holidayList .d-flex:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important; }
 #holidayList .bg-light { border-radius: 12px !important; background-color: #f8fafc !important; }
 
-/* --- ANIMATIONS & UTILS --- */
 .fade-out { opacity: 0; pointer-events: none; }
 .fade-in { animation: fadeInPage 0.8s ease-out; }
 @keyframes fadeInPage { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
@@ -349,11 +325,10 @@ input, textarea {
 .text-muted { color: #64748b !important; }
 .fw-bold { font-weight: 700 !important; }
 
-/* --- GENERAL & SPA CONTAINER --- */
 .content-container { 
     max-width: 900px; 
     margin: 0 auto; 
-    padding-bottom: 100px; /* Spacer untuk Bottom Nav */
+    padding-bottom: 100px;
     width: 100%; 
 }
 
@@ -371,73 +346,56 @@ input, textarea {
 }
 .bubble.active { background: #ffffff; color: #0ea5e9; border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
-/* --- RESPONSIVE FIXES (Small Mobile < 400px) --- */
 @media (max-width: 400px) {
-    /* 1. Mengurangi Padding Kartu agar area konten lebih luas */
     .card-date-gradient .card-body {
         padding: 1rem 1.2rem !important;
     }
 
-    /* 2. Mengecilkan ukuran Angka Tanggal */
     .date-big-num {
-        font-size: 3rem !important; /* SEBELUMNYA 2.2rem */
+        font-size: 3rem !important;
     }
 
-    /* 3. Mengecilkan ukuran Bubble agar muat 5 berjajar */
     .bubble {
-        width: 24px;  /* Dari 30px jadi 24px */
-        height: 24px; /* Dari 30px jadi 24px */
-        font-size: 0.55rem !important; /* Kecilkan huruf di dalam bubble */
+        width: 24px;
+        height: 24px;
+        font-size: 0.55rem !important;
     }
 
-    /* 4. Merapatkan jarak antar bubble */
     #weeklyBubbles {
-        gap: 3px; /* Dari 6px jadi 3px */
+        gap: 3px;
     }
     
-    /* 5. Menyesuaikan teks label "Status Minggu Ini" */
     .card-date-gradient small {
         font-size: 0.65rem !important;
     }
-
-    /* --- TAMBAHAN FIX UNTUK KALENDER --- */
     
-    /* 1. Paksa Gap (jarak) grid menjadi lebih rapat */
     #calendarGrid, 
     #viewCalendar .d-grid {
-        gap: 2px !important; /* Override style inline html yang 8px */
+        gap: 2px !important;
     }
 
-    /* 2. Kecilkan padding card kalender agar area lebih luas */
     #viewCalendar .card-body {
         padding: 10px !important;
     }
 
-    /* 3. Kecilkan font tanggal sedikit agar muat di lingkaran */
     .calendar-day {
         font-size: 0.75rem !important;
     }
 }
 
-/* --- FIX LAYOUT 320px (MOBILE KECIL) --- */
 @media (max-width: 380px) {
-    /* Perkecil gap antar elemen di header */
     .mobile-view {
         gap: 5px !important; 
     }
     
-    /* Nama user fontnya dikecilkan sedikit */
     .user-fullname-text {
         font-size: 0.85rem !important; 
     }
 
-    /* Sembunyikan kata "Lapor" jika layar SANGAT kecil (< 330px), sisakan icon saja */
-    /* Opsional: Hapus baris di bawah ini jika ingin teks tetap muncul */
     .btn-warning span:last-child {
        display: none; 
     }
     
-    /* Pastikan tombol tetap bulat jika teks hilang */
     .btn-warning {
         padding: 6px !important;
         aspect-ratio: 1/1;
@@ -464,17 +422,15 @@ input, textarea {
 .animate-fade-in { animation: fadeIn 0.5s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- MODAL --- */
 .custom-modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.5); 
-    z-index: 10000 !important; /* Di atas Loading */
+    z-index: 10000 !important;
     display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px);
 }
 .custom-modal-box { background: white; width: 85%; max-width: 320px; padding: 25px; border-radius: 20px; }
 .modal-icon-wrapper { width: 50px; height: 50px; background: #e0f2fe; color: var(--primary); border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
 
-/* --- TABEL PRESENSI (ROUNDED) --- */
 #viewHistory .card { border-radius: 20px !important; overflow: hidden; border: 1px solid #f1f5f9; }
 #viewHistory thead { background-color: #f1f5f9 !important; }
 #viewHistory tr { transition: background-color 0.2s; }
@@ -483,38 +439,27 @@ input, textarea {
 #viewHistory tbody tr:hover { background-color: #f8fafc; }
 #viewHistory .badge { border-radius: 8px !important; padding: 6px 12px !important; font-weight: 600; }
 
-/* Cari bagian #btn-send di CSS Anda dan update menjadi seperti ini */
 #btn-send {
     transition: all 0.3s ease;
     font-size: 1rem;
     letter-spacing: 0.5px;
-    
-    /* Pastikan border radius sama dengan kotak lokasi */
     border-radius: 12px !important; 
-    
-    /* Padding diatur agar tinggi tombol proporsional (tidak terlalu tebal) */
     padding-top: 14px !important;
     padding-bottom: 14px !important;
-    
-    /* Pastikan tinggi otomatis mengikuti konten, bukan fixed */
     height: auto !important; 
     min-height: auto !important;
-    
-    /* Flexbox untuk merapikan icon dan teks */
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* Responsif untuk layar sangat kecil (< 380px) */
 @media (max-width: 380px) {
     #btn-send {
-        font-size: 0.9rem; /* Perkecil teks sedikit */
-        padding: 12px !important; /* Kurangi padding */
+        font-size: 0.9rem;
+        padding: 12px !important;
     }
 }
 
-/* --- TOAST ANIMATIONS --- */
 @keyframes slideDownToast {
     from { opacity: 0; transform: translateY(-20px) scale(0.95); }
     to { opacity: 1; transform: translateY(0) scale(1); }

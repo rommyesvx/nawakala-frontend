@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
-    <title>Lapor Patroli - E-Presensi</title>
+    <title>Lapor Patroli - Nawakala</title>
     <link rel="icon" type="image/png" href="assets/images/logo.png">
     
     <link href="assets/bootstrap/bootstrap-5.0.2-dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="assets/css/style.css">
 
     <style>
-        /* CSS Khusus Halaman Patroli */
         .patrol-header {
             margin-bottom: 20px;
             text-align: center;
@@ -51,39 +50,28 @@
         .btn-shutter:active { transform: scale(0.9); }
         .hidden { display: none !important; }
 
-        /* --- STYLE TOMBOL KIRIM UTAMA --- */
         #btn-send {
             transition: all 0.3s ease;
             font-size: 1rem;
             letter-spacing: 0.5px;
-            
-            /* Bentuk Konsisten */
             border-radius: 12px !important; 
-            
-            /* Padding & Height Reset */
             padding-top: 14px !important;
             padding-bottom: 14px !important;
-            height: auto !important;       /* Mencegah tombol memanjang */
-            min-height: auto !important;   /* Reset jika ada min-height */
-            
-            /* Flexbox */
+            height: auto !important;
+            min-height: auto !important;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        /* --- FIX KHUSUS LAYAR KECIL (<= 380px) --- */
         @media (max-width: 380px) {
             #btn-send {
                 font-size: 0.9rem; 
                 padding: 12px !important;
-                
-                /* KUNCI PERBAIKAN: */
-                aspect-ratio: auto !important; /* Matikan rasio kotak 1:1 */
-                width: 100% !important;        /* Paksa lebar penuh */
+                aspect-ratio: auto !important;
+                width: 100% !important;
             }
             
-            /* Opsional: Pastikan teks di dalam tombol tetap muncul */
             #btn-send span {
                 display: inline-block !important;
             }
@@ -92,61 +80,7 @@
   </head>
   <body>
 
-    <nav class="desktop-navbar desktop-view">
-        <div class="nav-container">
-            <div class="d-flex align-items-center gap-3">
-                <img src="assets/images/logo.png" alt="Logo" style="width: 45px;">
-                <span class="fw-bold text-primary fs-5 brand-text-bold">E-Presensi</span>
-            </div>
-
-            <div class="nav-links d-flex gap-4 brand-text-bold">
-                <a href="home.html" class="nav-link-desk active">Home</a>
-                <a href="presensi.html" class="nav-link-desk">Presensi</a>
-                <a href="calendar.html" class="nav-link-desk">Kalender</a>
-                <a href="profile.html" class="nav-link-desk">Profil</a>
-            </div>
-
-            <div class="d-flex align-items-center gap-3">
-                
-                <button id="btnActionDesktop" onclick="processAttendance()" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm btn-gradient d-flex align-items-center gap-2">
-                    <i class="fas fa-fingerprint"></i> 
-                    <span>Absen Sekarang</span>
-                </button>
-
-                <div class="position-relative cursor-pointer mx-3" onclick="handleNotificationClick()">
-                    <i class="far fa-bell fa-lg text-secondary"></i>
-                    <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none"></span>
-                </div>
-
-                <div class="position-relative">
-                    <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-sm fw-bold cursor-pointer" onclick="toggleProfileDropdown(event)">
-                        <span class="user-initials">ME</span>
-                        <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle" style="width: 10px; height: 10px;"></span>
-                    </div>
-
-                    <div id="profileDropdown" class="dropdown-menu-custom shadow-lg rounded-4 d-none animate-fade-in-fast">
-                        <div class="p-3 border-bottom">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 45px; height: 45px; font-size: 1.1rem;">
-                                    <span class="user-initials">ME</span>
-                                </div>
-                                <div class="overflow-hidden">
-                                    <h6 class="mb-0 fw-bold text-dark text-truncate user-fullname-text" style="max-width: 180px;">Nama User</h6>
-                                    <small class="text-muted d-block" style="font-size: 0.75rem;">Alih Daya</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="p-2">
-                            <a href="#" onclick="handleLogout()" class="d-flex align-items-center gap-2 px-3 py-2 rounded-3 text-decoration-none text-danger hover-bg-red-soft">
-                                <i class="fas fa-power-off" style="width: 20px;"></i>
-                                <span class="small fw-bold">Keluar</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <div id="navbar-desktop-container"></div>
 
     <main class="main-content">
         <div class="container content-container animate-fade-in">
@@ -211,6 +145,7 @@
 
     <script src="cordova.js"></script>
     <script src="assets/js/config.js"></script>
+    <script src="assets/js/navbar.js?v=1.0.1"></script>
     <script src="assets/js/app.js"></script>
     <script src="assets/js/login.js"></script>
     <script src="assets/js/presensi.js"></script>

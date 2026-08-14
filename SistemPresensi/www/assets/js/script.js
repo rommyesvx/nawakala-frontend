@@ -949,8 +949,7 @@ function updateDateDisplay() {
     const d = new Date();
     if (document.getElementById('dashDateNum')) {
         const dNum = d.getDate();
-        let suffix = (dNum === 1 || dNum === 21 || dNum === 31) ? 'st' : (dNum === 2 || dNum === 22) ? 'nd' : (dNum === 3 || dNum === 23) ? 'rd' : 'th';
-        document.getElementById('dashDateNum').innerHTML = `${dNum}<sup class="fs-4">${suffix}</sup>`;
+        document.getElementById('dashDateNum').innerText = dNum;
         document.getElementById('dashDateDay').innerText = d.toLocaleDateString('id-ID', { weekday: 'long' });
         document.getElementById('dashDateMonth').innerText = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
     }
