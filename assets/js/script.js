@@ -7,6 +7,7 @@ const STORAGE_KEY_HISTORY = 'presensi_local_history';
 
 let currentCalendarDate = new Date();
 let currentUserLat = null, currentUserLon = null;
+let lastFreshGpsTime = 0;
 let activeUser = null;
 let currentNotifMessage = "Tidak ada notifikasi baru.";
 
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     getLocation(false);
+    initPullToRefresh();
 
     if (page === 'login.html') initLogin();
     else if (page === 'home.html') initHome();
@@ -70,31 +72,47 @@ document.addEventListener('DOMContentLoaded', () => {
 // 3. PAGE SPECIFIC LOGIC
 // ==========================================
 
+let isLoginSubmitting = false;
+
 function initLogin() {
     const form = document.getElementById('loginForm');
     if (!form) return;
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('inputUser').value;
-        const pass = document.getElementById('inputPass').value;
+
+        if (isLoginSubmitting) return;
+
+        const inputUser = document.getElementById('inputUser');
+        const inputPass = document.getElementById('inputPass');
+        const email = inputUser?.value?.trim() || "";
+        const pass = inputPass?.value?.trim() || "";
         const btn = form.querySelector('button');
-        const originalBtnText = btn.innerHTML;
+        const originalBtnText = btn ? btn.innerHTML : "MASUK";
 
-        if (!email || !pass) return showAppModal("Gagal", "Email dan Password wajib diisi", "error");
+        if (!email || !pass) {
+            return showAppModal("Gagal", "NIK/User ID dan Password wajib diisi", "error");
+        }
 
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Autentikasi...';
-        btn.disabled = true;
+        isLoginSubmitting = true;
+        if (inputUser) inputUser.disabled = true;
+        if (inputPass) inputPass.disabled = true;
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Autentikasi...';
+            btn.disabled = true;
+        }
 
-        if (window.LoginAPI) {
-            try {
+        let isSuccessRedirect = false;
+
+        try {
+            if (window.LoginAPI) {
                 const result = await window.LoginAPI.login(email, pass);
 
                 if (result.status === 'success' && result.data) {
                     const tempUser = result.data.user;
                     const tempToken = result.data.token;
 
-                    btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Memuat Profil...';
+                    if (btn) btn.innerHTML = '<i class="fas fa-sync fa-spin me-2"></i> Memuat Profil...';
 
                     let finalUser = {
                         username: tempUser.user_id || tempUser.name || "User",
@@ -130,8 +148,9 @@ function initLogin() {
                     localStorage.removeItem(STORAGE_KEY_HISTORY);
                     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(finalUser));
 
-                    document.getElementById('viewLogin').classList.add('d-none');
-                    document.getElementById('viewLoading').classList.remove('d-none');
+                    isSuccessRedirect = true;
+                    document.getElementById('viewLogin')?.classList.add('d-none');
+                    document.getElementById('viewLoading')?.classList.remove('d-none');
 
                     let pct = 50;
                     const interval = setInterval(() => {
@@ -145,19 +164,24 @@ function initLogin() {
                     }, 50);
 
                 } else {
+                    showAppModal("Login Gagal", result.message || "User ID atau password salah", "error");
+                }
+            } else {
+                showAppModal("Error", "Modul Login API tidak ditemukan.", "error");
+            }
+        } catch (error) {
+            console.error("Submit error:", error);
+            showAppModal("Error", "Gagal menghubungi server login.", "error");
+        } finally {
+            if (!isSuccessRedirect) {
+                isLoginSubmitting = false;
+                if (inputUser) inputUser.disabled = false;
+                if (inputPass) inputPass.disabled = false;
+                if (btn) {
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
-                    showAppModal("Login Gagal", result.message || "Email atau password salah", "error");
                 }
-            } catch (error) {
-                btn.innerHTML = originalBtnText;
-                btn.disabled = false;
-                showAppModal("Error", "Gagal menghubungi server login.", "error");
             }
-        } else {
-            btn.innerHTML = originalBtnText;
-            btn.disabled = false;
-            showAppModal("Error", "Modul Login API tidak ditemukan.", "error");
         }
     });
 }
@@ -548,10 +572,19 @@ function showToastNotification(message, type = 'success', duration = 3500) {
         setTimeout(() => toast.remove(), 350);
     }, duration);
 }
+let isAttendanceProcessing = false;
+let isKdmConfirming = false;
+
+function formatErrorMessage(err) {
+    if (!navigator.onLine || (err && (err.name === 'TypeError' || (typeof err === 'string' && err.includes('Failed to fetch'))))) {
+        return "Gagal terhubung ke server. Periksa koneksi internet atau data seluler Anda.";
+    }
+    return typeof err === 'string' ? err : (err?.message || err?.error || err?.status || "Terjadi kesalahan saat presensi.");
+}
 
 function processAttendance() {
-    if (currentUserLat !== null && currentUserLon !== null) {
-        executeAttendanceLogic();
+    if (isAttendanceProcessing) {
+        console.warn("⚠️ Presensi sedang diproses, mengabaikan klik ganda.");
         return;
     }
 
@@ -560,20 +593,71 @@ function processAttendance() {
         return;
     }
 
-    showLoadingBar("Mengambil lokasi GPS...");
+    const gpsAge = Date.now() - lastFreshGpsTime;
+    if (currentUserLat !== null && currentUserLon !== null && lastFreshGpsTime > 0 && gpsAge < 45000) {
+        console.log(`⚡ Menggunakan lokasi GPS segar (${Math.round(gpsAge / 1000)}s lalu) - Instan!`);
+        executeAttendanceLogic();
+        return;
+    }
+
+    isAttendanceProcessing = true;
+    showLoadingBar("Mengunci lokasi GPS...");
 
     navigator.geolocation.getCurrentPosition(
         (p) => {
             currentUserLat = p.coords.latitude;
             currentUserLon = p.coords.longitude;
+            lastFreshGpsTime = Date.now();
+
+            const coordsStr = `${currentUserLat.toFixed(5)}, ${currentUserLon.toFixed(5)}`;
+            const cachedRaw = localStorage.getItem("user_location_cache");
+            let locName = coordsStr;
+            if (cachedRaw) {
+                try {
+                    const parsed = JSON.parse(cachedRaw);
+                    if (parsed.name) locName = parsed.name;
+                } catch (e) {}
+            }
+            localStorage.setItem("user_location_cache", JSON.stringify({
+                lat: currentUserLat,
+                lng: currentUserLon,
+                name: locName,
+                teks_tampil: locName,
+                timestamp: Date.now()
+            }));
+
             hideLoadingBar();
             executeAttendanceLogic();
         },
-        () => {
-            hideLoadingBar();
-            showAppModal("Gagal", "Gagal mendapatkan lokasi. Aktifkan GPS Anda.", "error");
+        (err) => {
+            console.warn("⚠️ Perhatian: Gagal memperbarui GPS baru, mencoba pakai koordinat terakhir:", err);
+            if (currentUserLat !== null && currentUserLon !== null) {
+                hideLoadingBar();
+                executeAttendanceLogic();
+            } else if (err && err.code === err.TIMEOUT) {
+                console.log("🔄 Percobaan ulang lokasi dengan akurasi jaringan...");
+                navigator.geolocation.getCurrentPosition(
+                    (pLow) => {
+                        currentUserLat = pLow.coords.latitude;
+                        currentUserLon = pLow.coords.longitude;
+                        lastFreshGpsTime = Date.now();
+                        hideLoadingBar();
+                        executeAttendanceLogic();
+                    },
+                    (errLow) => {
+                        isAttendanceProcessing = false;
+                        hideLoadingBar();
+                        showAppModal("Gagal", "Gagal mendapatkan lokasi GPS. Waktu pencarian habis. Pastikan lokasi/GPS HP aktif.", "error");
+                    },
+                    { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+                );
+            } else {
+                isAttendanceProcessing = false;
+                hideLoadingBar();
+                showAppModal("Gagal", "Gagal mendapatkan lokasi GPS. Aktifkan GPS Anda.", "error");
+            }
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
 }
 
@@ -600,37 +684,17 @@ function updateDashboardButtonUI() {
     if (!btnDesktop && !fabMobile) return;
 
     const isSatpam = isUserSatpam();
-    const history = getLocalHistory();
-    const todayKey = formatDateKey(new Date());
 
-    let todayRecord = null;
-    for (let i = history.length - 1; i >= 0; i--) {
-        if (history[i].dateKey === todayKey) {
-            todayRecord = history[i];
-            break;
-        }
-    }
-
-    const isClockedIn = todayRecord && todayRecord.inTime !== '--:--:--';
-    const isClockedOut = todayRecord && todayRecord.outTime !== '--:--:--';
-    const hour = new Date().getHours();
-
-    let mode = 'absen';
-
-    if (isSatpam && isClockedIn && !isClockedOut && hour < 16) {
-        mode = 'patroli';
-    }
-
-    if (mode === 'patroli') {
+    if (isSatpam) {
         if (btnDesktop) {
             btnDesktop.className = "btn btn-warning rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2";
-            btnDesktop.innerHTML = `<i class="fas fa-user-shield"></i> <span>Lapor Patroli</span>`;
-            btnDesktop.style.background = "#fbbf24";
+            btnDesktop.innerHTML = `<i class="fas fa-user-shield"></i> <span>Presensi & Lapor Patroli</span>`;
+            btnDesktop.style.background = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
+            btnDesktop.style.color = "#ffffff";
             btnDesktop.style.border = "none";
-            btnDesktop.style.color = "#78350f";
         }
         if (fabMobile) {
-            fabMobile.style.borderColor = "#fbbf24";
+            fabMobile.style.borderColor = "#f59e0b";
             fabMobile.style.color = "#d97706";
             fabMobile.innerHTML = `<i class="fas fa-user-shield"></i>`;
         }
@@ -654,26 +718,44 @@ function updateDashboardButtonUI() {
 // ==========================================
 // KONTROL MODAL KDM
 // ==========================================
-window.closeKdmModal = () => document.getElementById('kdmConfirmModal').classList.add('d-none');
+window.closeKdmModal = () => {
+    document.getElementById('kdmConfirmModal').classList.add('d-none');
+    window.pendingKdmData = null;
+    window.currentAttendanceId = null;
+};
 
 window.confirmKdmAttendance = async () => {
+    if (isKdmConfirming) return;
+    isKdmConfirming = true;
+
+    const pendingData = window.pendingKdmData;
+    const attId = window.currentAttendanceId;
     closeKdmModal();
 
-    if (window.currentAttendanceId && window.PresensiAPI && activeUser?.token) {
+    if (window.PresensiAPI && activeUser?.token) {
         try {
             showAppModal("Info", "Mengonfirmasi kehadiran KDM...", "warning");
-            await PresensiAPI.confirmKdm(activeUser.token, {
-                attendance_id: window.currentAttendanceId,
+            const payload = {
+                latitude: pendingData?.latitude || currentUserLat,
+                longitude: pendingData?.longitude || currentUserLon,
                 confirmation_status: true
-            });
+            };
+            if (attId && typeof attId === 'number' && attId > 0) {
+                payload.attendance_id = attId;
+            }
+            await PresensiAPI.confirmKdm(activeUser.token, payload);
             closeAppModal();
             finishClockInUI('KDM');
         } catch (err) {
             closeAppModal();
-            showAppModal("Gagal", "Gagal mengonfirmasi KDM: " + (err.message || err.status || "Terjadi kesalahan"), "error");
+            const errMsg = formatErrorMessage(err);
+            showAppModal("Gagal", "Gagal mengonfirmasi KDM: " + errMsg, "error");
+        } finally {
+            isKdmConfirming = false;
         }
     } else {
-        showAppModal("Error", "ID Kehadiran tidak valid.", "error");
+        isKdmConfirming = false;
+        showAppModal("Error", "Sesi atau API tidak tersedia.", "error");
     }
 };
 
@@ -705,6 +787,7 @@ async function executeAttendanceLogic() {
     const isSatpam = isUserSatpam();
 
     if (isSatpam && isClockedIn && !isClockedOut && hour < 16) {
+        isAttendanceProcessing = false;
         window.location.href = "patrol.html";
         return;
     }
@@ -720,7 +803,7 @@ async function executeAttendanceLogic() {
             }
             hideLoadingBar();
 
-            showToastNotification("✅ Presensi Pulang Berhasil Dicatat!", "success");
+            showToastNotification("Presensi Berhasil Dicatat", "success");
             await refreshHistoryFromAPI();
             return;
         }
@@ -734,7 +817,11 @@ async function executeAttendanceLogic() {
             hideLoadingBar();
 
             if (result && result.httpStatus === 202) {
-                window.currentAttendanceId = result.data.attendance_id;
+                window.pendingKdmData = {
+                    latitude: currentUserLat,
+                    longitude: currentUserLon
+                };
+                window.currentAttendanceId = result.data?.attendance_id || null;
                 document.getElementById('kdmConfirmModal').classList.remove('d-none');
             } else if (result && result.httpStatus === 200) {
                 await finishClockInUI('KDK');
@@ -746,13 +833,15 @@ async function executeAttendanceLogic() {
 
     } catch (err) {
         hideLoadingBar();
-        const errMsg = typeof err === 'string' ? err : (err?.message || err?.error || "Terjadi kesalahan saat presensi.");
+        const errMsg = formatErrorMessage(err);
         showToastNotification(errMsg, "error", 5000);
+    } finally {
+        isAttendanceProcessing = false;
     }
 }
 
 async function finishClockInUI(statusPresensi) {
-    showToastNotification(`✅ Presensi Masuk (${statusPresensi}) Berhasil Dicatat!`, "success");
+    showToastNotification("Presensi Berhasil Dicatat", "success");
     await refreshHistoryFromAPI();
 }
 
@@ -975,10 +1064,23 @@ function getLocation(forceLoadingText = false) {
 
     if (!navigator.geolocation) return;
 
+    if (!window.gpsWatchId) {
+        window.gpsWatchId = navigator.geolocation.watchPosition(
+            (p) => {
+                currentUserLat = p.coords.latitude;
+                currentUserLon = p.coords.longitude;
+                lastFreshGpsTime = Date.now();
+            },
+            (err) => console.warn("Background GPS Watcher warning:", err),
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+        );
+    }
+
     navigator.geolocation.getCurrentPosition(
         (p) => {
             currentUserLat = p.coords.latitude;
             currentUserLon = p.coords.longitude;
+            lastFreshGpsTime = Date.now();
 
             fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${currentUserLat}&longitude=${currentUserLon}&localityLanguage=id`)
                 .then(res => res.json())
@@ -1236,5 +1338,123 @@ document.addEventListener('click', (event) => {
     const dropdown = document.getElementById('profileDropdown');
     if (dropdown && !dropdown.classList.contains('d-none') && !dropdown.contains(event.target)) {
         dropdown.classList.add('d-none');
+    }
+});
+
+// ==========================================
+// PULL TO REFRESH (SWIPE DOWN TO REFRESH)
+// ==========================================
+function initPullToRefresh() {
+    let startY = 0;
+    let currentY = 0;
+    let isPulling = false;
+    let isRefreshing = false;
+    const threshold = 60;
+
+    let ptrEl = document.getElementById('ptrIndicator');
+    if (!ptrEl) {
+        ptrEl = document.createElement('div');
+        ptrEl.id = 'ptrIndicator';
+        ptrEl.className = 'ptr-element';
+        ptrEl.innerHTML = `
+            <div class="ptr-box">
+                <i class="fas fa-arrow-down ptr-icon" id="ptrIcon"></i>
+                <span id="ptrText">Tarik untuk menyegarkan</span>
+            </div>
+        `;
+        document.body.prepend(ptrEl);
+    }
+
+    const ptrIcon = document.getElementById('ptrIcon');
+    const ptrText = document.getElementById('ptrText');
+
+    window.addEventListener('touchstart', (e) => {
+        if (isRefreshing) return;
+        if (window.scrollY === 0 || document.documentElement.scrollTop === 0) {
+            startY = e.touches[0].clientY;
+            isPulling = true;
+        }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!isPulling || isRefreshing) return;
+
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - startY;
+
+        if (deltaY > 0 && (window.scrollY === 0 || document.documentElement.scrollTop === 0)) {
+            const pullDistance = Math.min(deltaY * 0.45, 80);
+            ptrEl.style.transform = `translateY(${pullDistance}px)`;
+
+            if (pullDistance >= threshold) {
+                if (ptrText) ptrText.innerText = "Lepaskan untuk menyegarkan";
+                if (ptrIcon) ptrIcon.style.transform = "rotate(180deg)";
+            } else {
+                if (ptrText) ptrText.innerText = "Tarik untuk menyegarkan";
+                if (ptrIcon) ptrIcon.style.transform = "rotate(0deg)";
+            }
+        }
+    }, { passive: true });
+
+    window.addEventListener('touchend', async () => {
+        if (!isPulling || isRefreshing) return;
+        isPulling = false;
+
+        const deltaY = currentY - startY;
+        const pullDistance = Math.min(deltaY * 0.45, 80);
+
+        if (pullDistance >= threshold && (window.scrollY === 0 || document.documentElement.scrollTop === 0)) {
+            isRefreshing = true;
+            ptrEl.style.transform = `translateY(65px)`;
+            if (ptrIcon) {
+                ptrIcon.className = "fas fa-sync-alt ptr-icon ptr-spinning";
+                ptrIcon.style.transform = "rotate(0deg)";
+            }
+            if (ptrText) ptrText.innerText = "Memperbarui data...";
+
+            try {
+                if (typeof window.refreshLocation === 'function') {
+                    window.refreshLocation();
+                }
+                if (typeof refreshHistoryFromAPI === 'function') {
+                    await refreshHistoryFromAPI();
+                }
+                if (typeof updateDashboardButtonUI === 'function') {
+                    updateDashboardButtonUI();
+                }
+                if (typeof showToastNotification === 'function') {
+                    showToastNotification("Data berhasil diperbarui", "success", 2500);
+                }
+            } catch (err) {
+                console.error("Gagal memperbarui data swipe:", err);
+            } finally {
+                setTimeout(() => {
+                    ptrEl.style.transform = `translateY(0px)`;
+                    setTimeout(() => {
+                        if (ptrIcon) ptrIcon.className = "fas fa-arrow-down ptr-icon";
+                        if (ptrText) ptrText.innerText = "Tarik untuk menyegarkan";
+                        isRefreshing = false;
+                    }, 200);
+                }, 600);
+            }
+        } else {
+            ptrEl.style.transform = `translateY(0px)`;
+        }
+
+        startY = 0;
+        currentY = 0;
+    });
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        console.log("🔄 Tab/Aplikasi kembali aktif. Memperbarui data dashboard...");
+        if (typeof checkGPS === "function") checkGPS();
+        if (activeUser && typeof refreshHistoryFromAPI === "function") {
+            refreshHistoryFromAPI();
+        }
+        if (typeof updateDashboardButtonUI === "function") {
+            updateDashboardButtonUI();
+        }
     }
 });

@@ -1,7 +1,4 @@
-/**
- * Navbar Component Loader for Nawakala App
- * Centrally renders Desktop and Mobile Navbars across all pages.
- */
+
 (function () {
     function renderNavbars() {
         const currentPath = window.location.pathname.split("/").pop() || "home.html";

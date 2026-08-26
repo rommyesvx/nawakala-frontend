@@ -1,8 +1,36 @@
 /**
  * PRESENSI API
  */
+function handleUnauthorized(res, data) {
+    if (res && res.status === 401) {
+        console.warn("⚠️ Sesi berakhir (HTTP 401). Mengarahkan ke login.html...");
+        localStorage.removeItem("activeUser");
+        sessionStorage.clear();
+        const msg = data?.message || "Sesi Anda telah berakhir. Silakan login kembali.";
+        if (typeof showAppModal === "function") {
+            showAppModal("Sesi Berakhir", msg, "error");
+            setTimeout(() => { window.location.href = "login.html"; }, 2000);
+        } else {
+            alert(msg);
+            window.location.href = "login.html";
+        }
+    }
+}
+
+function formatNetworkError(err) {
+    if (!navigator.onLine || (err && (err.name === 'TypeError' || (typeof err === 'string' && err.includes('Failed to fetch'))))) {
+        return {
+            status: "error",
+            message: "Gagal terhubung ke server. Periksa koneksi internet atau data seluler Anda."
+        };
+    }
+    return err;
+}
+
 const PresensiAPI = {
-    baseUrl: window.API_BASE_URL,
+    get baseUrl() {
+        return window.API_BASE_URL || "https://caraka-biroumumpbj.kemendikdasmen.go.id/api/v2";
+    },
 
     async clockIn(token, payload) {
         try {
@@ -20,17 +48,13 @@ const PresensiAPI = {
             console.log("CLOCK IN API:", data);
 
             data.httpStatus = res.status;
-
-            if (res.status === 401) {
-                if (typeof window.handleUnauthorized === 'function') window.handleUnauthorized();
-                throw data;
-            }
+            handleUnauthorized(res, data);
 
             if (!res.ok) throw data;
             return data;
         } catch (err) {
             console.error("❌ Clock In API error:", err);
-            throw err;
+            throw formatNetworkError(err);
         }
     },
 
@@ -49,16 +73,38 @@ const PresensiAPI = {
             const data = await res.json();
             console.log("CONFIRM KDM API:", data);
 
-            if (res.status === 401) {
-                if (typeof window.handleUnauthorized === 'function') window.handleUnauthorized();
-                throw data;
-            }
+            handleUnauthorized(res, data);
 
             if (!res.ok) throw data;
             return data;
         } catch (err) {
             console.error("❌ Confirm KDM API error:", err);
-            throw err;
+            throw formatNetworkError(err);
+        }
+    },
+
+    async cancelKdm(token, payload) {
+        try {
+            const res = await fetch(`${this.baseUrl}/cancel-kdm.php`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            console.log("CANCEL KDM API:", data);
+
+            handleUnauthorized(res, data);
+
+            if (!res.ok) throw data;
+            return data;
+        } catch (err) {
+            console.error("❌ Cancel KDM API error:", err);
+            throw formatNetworkError(err);
         }
     },
 
@@ -77,16 +123,13 @@ const PresensiAPI = {
             const data = await res.json();
             console.log("CLOCK OUT API:", data);
 
-            if (res.status === 401) {
-                if (typeof window.handleUnauthorized === 'function') window.handleUnauthorized();
-                throw data;
-            }
+            handleUnauthorized(res, data);
 
             if (!res.ok) throw data;
             return data;
         } catch (err) {
             console.error("❌ Clock Out API error:", err);
-            throw err;
+            throw formatNetworkError(err);
         }
     },
 
@@ -102,10 +145,7 @@ const PresensiAPI = {
             const data = await res.json();
             console.log("HISTORY API:", data);
 
-            if (res.status === 401) {
-                if (typeof window.handleUnauthorized === 'function') window.handleUnauthorized();
-                throw data;
-            }
+            handleUnauthorized(res, data);
 
             if (!res.ok) throw data;
             return data;
@@ -127,10 +167,7 @@ const PresensiAPI = {
             const data = await res.json();
             console.log("TODAY API:", data);
 
-            if (res.status === 401) {
-                if (typeof window.handleUnauthorized === 'function') window.handleUnauthorized();
-                throw data;
-            }
+            handleUnauthorized(res, data);
 
             if (!res.ok) throw data;
             return data;
@@ -158,10 +195,7 @@ const PresensiAPI = {
             const data = await res.json();
             console.log("SCHEDULE API:", data);
 
-            if (res.status === 401) {
-                if (typeof window.handleUnauthorized === 'function') window.handleUnauthorized();
-                throw data;
-            }
+            handleUnauthorized(res, data);
 
             if (!res.ok) throw data;
             return data;

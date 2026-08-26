@@ -1,1 +1,1 @@
-window.API_BASE_URL = "http://caraka-biroumumpbj.kemendikdasmen.go.id/api/v2";
+window.API_BASE_URL = "https://caraka-biroumumpbj.kemendikdasmen.go.id/api/v2";

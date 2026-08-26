@@ -25,11 +25,6 @@ const ProfileAPI = {
                 }
             });
 
-            if (response.status === 401) {
-                if (typeof window.handleUnauthorized === 'function') window.handleUnauthorized();
-                throw new Error("Unauthorized");
-            }
-
             if (!response.ok) {
                 throw new Error(`HTTP Error: ${response.status}`);
             }

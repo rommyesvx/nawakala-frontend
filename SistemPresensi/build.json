@@ -1,0 +1,11 @@
+{
+    "android": {
+        "release": {
+            "keystore": "release-key.keystore",
+            "storePassword": "Biro_Umum_PBJ@2026",
+            "alias": "release_alias",
+            "password": "Biro_Umum_PBJ@2026",
+            "packageType": "bundle"
+        }
+    }
+}
