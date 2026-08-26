@@ -3,3 +3,4 @@ platforms/
 plugins/
 .DS_Store
 *.txt
+build.json
