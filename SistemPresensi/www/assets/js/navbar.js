@@ -26,7 +26,7 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-3">
-                    <button id="btnActionDesktop" onclick="processAttendance()"
+                    <button id="btnActionDesktop" onclick="promptAttendance()"
                         class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm btn-gradient d-flex align-items-center gap-2">
                         <i class="fas fa-fingerprint"></i>
                         <span>Absen Sekarang</span>
@@ -78,7 +78,7 @@
         const mobileHTML = `
         <div class="mobile-nav-container d-md-none">
             <div class="fab-container">
-                <button id="btnActionMobile" class="fab-btn" onclick="processAttendance()">
+                <button id="btnActionMobile" class="fab-btn" onclick="promptAttendance()">
                     <i class="fas fa-fingerprint"></i>
                 </button>
             </div>

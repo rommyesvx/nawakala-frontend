@@ -583,6 +583,75 @@ function formatErrorMessage(err) {
     return typeof err === 'string' ? err : (err?.message || err?.error || err?.status || "Terjadi kesalahan saat presensi.");
 }
 
+window.promptAttendance = () => {
+    if (isAttendanceProcessing) {
+        console.warn("⚠️ Presensi sedang diproses, mengabaikan klik.");
+        return;
+    }
+
+    const now = new Date();
+    const todayKey = formatDateKey(now);
+    const history = getLocalHistory();
+    let existingIndex = -1;
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].dateKey === todayKey) {
+            existingIndex = i;
+            break;
+        }
+    }
+    const todayRecord = existingIndex > -1 ? history[existingIndex] : null;
+    const isValidTime = (t) => Boolean(t && t !== '--:--:--' && t !== '-' && t !== '' && t !== 'null' && t !== 'undefined');
+    
+    const isClockedIn = todayRecord && isValidTime(todayRecord.inTime);
+    const isClockedOut = todayRecord && isValidTime(todayRecord.outTime);
+
+    const isSatpam = typeof isUserSatpam === 'function' ? isUserSatpam() : false;
+    const hour = now.getHours();
+
+    let actionText = "Absen Masuk (Clock In)";
+    if (isClockedIn && !isClockedOut) {
+        if (isSatpam && hour < 16) {
+            actionText = "Lapor Patroli";
+        } else {
+            actionText = "Absen Pulang (Clock Out)";
+        }
+    }
+
+    let modal = document.getElementById('confirmAttendanceModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'confirmAttendanceModal';
+        modal.className = 'custom-modal-overlay d-none';
+        modal.innerHTML = `
+            <div class="custom-modal-box text-center">
+                <div class="modal-icon-wrapper" style="background: #e0f2fe; color: #0284c7;">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <h5 class="fw-bold mt-3">Konfirmasi Presensi</h5>
+                <p class="text-muted small mb-4">Apakah Anda yakin ingin melakukan <b id="confirmActionText">Absen</b> sekarang?</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button onclick="closeAttendanceConfirmModal()" class="btn btn-light w-50 rounded-pill fw-bold text-secondary">Batal</button>
+                    <button onclick="executeAttendanceConfirm()" class="btn btn-primary w-50 rounded-pill fw-bold shadow-sm">Ya, Yakin</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    document.getElementById('confirmActionText').innerText = actionText;
+    modal.classList.remove('d-none');
+};
+
+window.closeAttendanceConfirmModal = () => {
+    const modal = document.getElementById('confirmAttendanceModal');
+    if (modal) modal.classList.add('d-none');
+};
+
+window.executeAttendanceConfirm = () => {
+    closeAttendanceConfirmModal();
+    processAttendance();
+};
+
 function processAttendance() {
     if (isAttendanceProcessing) {
         console.warn("⚠️ Presensi sedang diproses, mengabaikan klik ganda.");

@@ -4,6 +4,8 @@
 function handleUnauthorized(res, data) {
     if (res && res.status === 401) {
         console.warn("⚠️ Sesi berakhir (HTTP 401). Mengarahkan ke login.html...");
+        localStorage.removeItem("presensi_local_user");
+        localStorage.removeItem("presensi_local_history");
         localStorage.removeItem("activeUser");
         sessionStorage.clear();
         const msg = data?.message || "Sesi Anda telah berakhir. Silakan login kembali.";

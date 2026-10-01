@@ -26,6 +26,10 @@ const ProfileAPI = {
             });
 
             if (!response.ok) {
+                if (response.status === 401 && typeof handleUnauthorized === "function") {
+                    const data = await response.json().catch(() => null);
+                    handleUnauthorized(response, data);
+                }
                 throw new Error(`HTTP Error: ${response.status}`);
             }
 

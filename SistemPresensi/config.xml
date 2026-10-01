@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.nawakala.roum_pbj" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.nawakala.roum_pbj" version="1.0.1" android-versionCode="10001" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Nawakala</name>
-    <description>Aplikasi Presensi DASMEN</description>
-    <author email="dev@dasmen.com" href="http://dasmen.com">Team DASMEN</author>
+    <description>Aplikasi Presensi Nawakala</description>
+    <author email="dev@dasmen.com" href="http://dasmen.com">Nawakala</author>
     
     <content src="index.html" />
     
